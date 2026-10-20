@@ -1,0 +1,19 @@
+{
+  "data": {
+    "language": "en-GB",
+    "repo": {
+      "name": "LunarWatcher/iris",
+      "url": "https://codeberg.org/LunarWatcher/iris",
+      "license": "Iris is licensed under the <a href=\"https://codeberg.org/LunarWatcher/iris/src/branch/master/LICENSE\">MIT license</a>"
+    }
+  },
+  "description": "Doc site for the iris templating library",
+  "exclude": [
+    "LICENSE",
+    "scripts"
+  ],
+  "name": "Iris templates",
+  "prefix": "",
+  "theme": "_default",
+  "toc-start-level": 2
+}

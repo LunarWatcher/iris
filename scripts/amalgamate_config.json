@@ -1,8 +1,8 @@
 {
-	"project": "inja",
-	"target": "single_include/inja/inja.hpp",
+	"project": "iris",
+	"target": "single_include/iris/iris.hpp",
 	"sources": [
-		"inja/inja.hpp"
+		"iris/iris.hpp"
 	],
 	"include_paths": [
 	]

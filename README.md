@@ -1,69 +1,36 @@
-[<div align="center"><img width="500" src="https://raw.githubusercontent.com/pantor/inja/master/doc/logo.svg?sanitize=true"></div>](https://github.com/pantor/inja/releases)
+# Iris templates
 
-<p align="center">
-  <a href="https://github.com/pantor/inja/actions">
-    <img src="https://github.com/pantor/inja/workflows/CI/badge.svg" alt="CI Status">
-  </a>
-  <a href="https://github.com/pantor/inja/actions">
-    <img src="https://github.com/pantor/inja/workflows/Documentation/badge.svg" alt="Documentation Status">
-  </a>
-  <a href="https://app.codacy.com/gh/pantor/inja/dashboard">
-    <img src="https://app.codacy.com/project/badge/Grade/211718f7a36541819d1244c0e2ee6f08"/>
-  </a>
-  <a href="https://github.com/pantor/inja/releases">
-    <img src="https://img.shields.io/github/release/pantor/inja.svg" alt="Github Releases">
-  </a>
-  <a href="http://github.com/pantor/inja/issues">
-    <img src="https://img.shields.io/github/issues/pantor/inja.svg" alt="Github Issues">
-  </a>
-  <a href="https://raw.githubusercontent.com/pantor/inja/master/LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="GitHub License">
-  </a>
-</p>
+Iris is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, and comments you need, nested and combined as you like. Here is what it looks like:
 
-Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, and comments you need, nested and combined as you like. Of course, everything is tested in CI on all relevant compilers. Here is what it looks like:
-
-```.cpp
+```cpp
 json data;
 data["name"] = "world";
 
-inja::render("Hello {{ name }}!", data); // Returns "Hello world!"
+iris::render("Hello {{ name }}!", data); // Returns "Hello world!"
 ```
+
+Iris is a fork of [inja](https://github.com/pantor/inja/) with stronger guarantees against AI slop, as well as changes meant to benefit [violet](https://codeberg.org/LunarWatcher/violet) and whatever else in the general anti-AI ecosystem could need proper templates beyond what something more simple like mustache can provide.
 
 ## Integration
 
-Inja is a headers only library, which can be downloaded from the [releases](https://github.com/pantor/inja/releases) or directly from the `include/` or `single_include/` folder. Inja uses `nlohmann/json.hpp` (>= v3.8.0) as its single dependency, so make sure it can be included from `inja.hpp`. json can be downloaded [here](https://github.com/nlohmann/json/releases). Then integration is as easy as:
+Iris uses `nlohmann/json.hpp` (>= v3.8.0) as its single dependency, so make sure it can be included from `iris.hpp`. Note that iris uses a forked version until the dependency can be shed in favour of using raw stdlib alternatives. The forked version was made prior to the sloppification of nlohmann/json. The forked version can be downloaded from https://github.com/LunarWatcher/json
 
-```.cpp
-#include <inja.hpp>
+```cpp
+#include <iris.hpp>
 
 // Just for convenience
-using namespace inja;
+using namespace iris;
 ```
-
-If you are using the [Meson Build System](http://mesonbuild.com), then you can wrap this repository as a subproject.
-
-If you are using [Conan](https://conan.io) to manage your dependencies, have a look at [this repository](https://github.com/DEGoodmanWilson/conan-inja). Please file issues [here](https://github.com/DEGoodmanWilson/conan-inja/issues) if you experience problems with the packages.
-
-You can also integrate inja in your project using [Hunter](https://github.com/cpp-pm/hunter), a package manager for C++.
-
-If you are using [vcpkg](https://github.com/Microsoft/vcpkg) on your project for external dependencies, then you can use the [inja package](https://github.com/Microsoft/vcpkg/tree/master/ports/inja). Please see the vcpkg project for any issues regarding the packaging.
-
-If you are using [cget](https://cget.readthedocs.io/en/latest/), you can install the latest development version with `cget install pantor/inja`. A specific version can be installed with `cget install pantor/inja@v2.1.0`.
-
-On macOS, you can install inja via [Homebrew](https://formulae.brew.sh/formula/inja#default) and `brew install inja`.
-
-If you are using [conda](https://docs.conda.io/en/latest/), you can install the latest version from [conda-forge](https://anaconda.org/conda-forge/inja) with `conda install -c conda-forge inja`.
 
 ## Tutorial
 
-This tutorial will give you an idea how to use inja. It will explain the most important concepts and give practical advices using examples and executable code. Beside this tutorial, you may check out the [documentation](https://pantor.github.io/inja).
+This tutorial will give you an idea how to use iris. It will explain the most important concepts and give practical advices using examples and executable code. Beside this tutorial, you may check out the [documentation](https://lunarwatcher.codeberg.page/iris).
 
 ### Template Rendering
 
 The basic template rendering takes a template as a `std::string` and a `json` object for all data. It returns the rendered template as an `std::string`.
 
-```.cpp
+```cpp
 json data;
 data["name"] = "world";
 
@@ -72,7 +39,7 @@ render_to(std::cout, "Hello {{ name }}!", data); // Writes "Hello world!" to str
 ```
 
 For more advanced usage, an environment is recommended.
-```.cpp
+```cpp
 Environment env;
 
 // Render a string with json data
@@ -82,8 +49,8 @@ std::string result = env.render("Hello {{ name }}!", data); // "Hello world!"
 Template temp = env.parse_template("./templates/greeting.txt");
 std::string result = env.render(temp, data); // "Hello world!"
 
-data["name"] = "Inja";
-std::string result = env.render(temp, data); // "Hello Inja!"
+data["name"] = "Iris";
+std::string result = env.render(temp, data); // "Hello Iris!"
 
 // Or read the template file (and/or the json file) directly from the environment
 result = env.render_file("./templates/greeting.txt", data);
@@ -95,7 +62,7 @@ env.write_with_json_file("./templates/greeting.txt", "./data.json", "./result.tx
 ```
 
 The environment class can be configured to your needs.
-```.cpp
+```cpp
 // With default settings
 Environment env_default;
 
@@ -116,7 +83,7 @@ env.set_html_autoescape(true); // Perform HTML escaping on all strings
 ### Variables
 
 Variables are rendered within the `{{ ... }}` expressions.
-```.cpp
+```cpp
 json data;
 data["neighbour"] = "Peter";
 data["guests"] = {"Jeff", "Tom", "Patrick"};
@@ -129,7 +96,7 @@ render("{{ guests.1 }}", data); // "Tom"
 // Objects
 render("{{ time.start }} to {{ time.end + 1 }}pm", data); // "16 to 23pm"
 ```
-If no variable is found, valid JSON is printed directly, otherwise an `inja::RenderError` is thrown.
+If no variable is found, valid JSON is printed directly, otherwise an `iris::RenderError` is thrown.
 
 ### Statements
 
@@ -137,7 +104,7 @@ Statements can be written either with the `{% ... %}` syntax or the `##` syntax 
 
 #### Loops
 
-```.cpp
+```cpp
 // Combining loops and line statements
 render(R"(Guest List:
 ## for guest in guests
@@ -154,7 +121,7 @@ In a loop, the special variables `loop.index (number)`, `loop.index1 (number)`, 
 #### Conditions
 
 Conditions support the typical if, else if and else statements. Following conditions are for example possible:
-```.cpp
+```cpp
 // Standard comparisons with a variable
 render("{% if time.hour >= 20 %}Serve{% else if time.hour >= 18 %}Make{% endif %} dinner.", data); // Serve dinner.
 
@@ -171,9 +138,9 @@ render("{% if not guest_count %}The End{% endif %}", data); // The End
 #### Includes
 
 You can either include other in-memory templates or from the file system.
-```.cpp
+```cpp
 // To include in-memory templates, add them to the environment first
-inja::Template content_template = env.parse("Hello {{ neighbour }}!");
+iris::Template content_template = env.parse("Hello {{ neighbour }}!");
 env.include_template("content", content_template);
 env.render("Content: {% include \"content\" %}", data); // "Content: Hello Peter!"
 
@@ -181,7 +148,7 @@ env.render("Content: {% include \"content\" %}", data); // "Content: Hello Peter
 render("{% include \"footer.html\" %}", data);
 ```
 If a corresponding template could not be found in the file system, the *include callback* is called:
-```.cpp
+```cpp
 // The callback takes the current path and the wanted include name and returns a template
 env.set_include_callback([&env](const std::filesystem::path& path, const std::string& template_name) {
   return env.parse("Hello {{ neighbour }} from " + template_name);
@@ -191,12 +158,12 @@ env.set_include_callback([&env](const std::filesystem::path& path, const std::st
 env.set_search_included_templates_in_files(false);
 ```
 
-Inja will throw an `inja::RenderError` if an included file is not found and no callback is specified. To disable this error, you can call `env.set_throw_at_missing_includes(false)`.
+Iris will throw an `iris::RenderError` if an included file is not found and no callback is specified. To disable this error, you can call `env.set_throw_at_missing_includes(false)`.
 
 #### Assignments
 
 Variables can also be defined within the template using the set statment.
-```.cpp
+```cpp
 render("{% set new_hour=23 %}{{ new_hour }}pm", data); // "23pm"
 render("{% set time.start=18 %}{{ time.start }}pm", data); // using json pointers
 ```
@@ -205,8 +172,8 @@ Assignments only set the value within the rendering context; they do not modify 
 
 ### Functions
 
-A few functions are implemented within the inja template syntax. They can be called with
-```.cpp
+A few functions are implemented within the iris template syntax. They can be called with
+```cpp
 // Upper, lower and capitalize function, for string cases
 render("Hello {{ upper(neighbour) }}!", data); // "Hello PETER!"
 render("Hello {{ lower(neighbour) }}!", data); // "Hello peter!"
@@ -272,7 +239,7 @@ render("{{ isArray(guests) }}", data); // "true"
 
 The Jinja2 pipe call syntax of functions is also supported:
 
-```.cpp
+```cpp
 // Upper neighbour value
 render("Hello {{ neighbour | upper }}!", data); // "Hello PETER!"
 
@@ -282,8 +249,8 @@ render("{{ [\"B\", \"A\", \"C\"] | sort | join(\",\") }}", data); // "A,B,C"
 
 ### Callbacks
 
-You can create your own and more complex functions with callbacks. These are implemented with `std::function`, so you can for example use C++ lambdas. Inja `Arguments` are a vector of json pointers.
-```.cpp
+You can create your own and more complex functions with callbacks. These are implemented with `std::function`, so you can for example use C++ lambdas. Iris `Arguments` are a vector of json pointers.
+```cpp
 Environment env;
 
 /*
@@ -300,7 +267,7 @@ env.add_callback("double", 1, [](Arguments& args) {
 // You can then use a callback like a regular function
 env.render("{{ double(16) }}", data); // "32"
 
-// Inja falls back to variadic callbacks if the number of expected arguments is omitted.
+// Iris falls back to variadic callbacks if the number of expected arguments is omitted.
 env.add_callback("argmax", [](Arguments& args) {
   auto result = std::max_element(args.begin(), args.end(), [](const json* a, const json* b) { return *a < *b;});
   return std::distance(args.begin(), result);
@@ -316,7 +283,7 @@ env.add_callback("double-greetings", 0, [greet](Arguments args) {
 env.render("{{ double-greetings }}", data); // "Hello Hello!"
 ```
 You can also add a void callback without return variable, e.g. for debugging:
-```.cpp
+```cpp
 env.add_void_callback("log", 1, [greet](Arguments args) {
 	std::cout << "logging: " << args[0] << std::endl;
 });
@@ -363,7 +330,7 @@ calls a parent template with the `extends` keyword; it should be the first eleme
 
 In the default configuration, no whitespace is removed while rendering the file. To support a more readable template style, you can configure the environment to control whitespaces before and after a statement automatically. While enabling `set_trim_blocks` removes the first newline after a statement, `set_lstrip_blocks` strips tabs and spaces from the beginning of a line to the start of a block.
 
-```.cpp
+```cpp
 Environment env;
 env.set_trim_blocks(true);
 env.set_lstrip_blocks(true);
@@ -371,8 +338,8 @@ env.set_lstrip_blocks(true);
 
 With both `trim_blocks` and `lstrip_blocks` enabled, you can put statements on their own lines. Furthermore, you can also strip whitespaces for both statements and expressions by hand. If you add a minus sign (`-`) to the start or end, the whitespaces before or after that block will be removed:
 
-```.cpp
-render("Hello       {{- name -}}     !", data); // "Hello Inja!"
+```cpp
+render("Hello       {{- name -}}     !", data); // "Hello Iris!"
 render("{% if neighbour in guests -%}   I was there{% endif -%}   !", data); // Renders without any whitespaces
 ```
 
@@ -382,27 +349,21 @@ Stripping behind a statement or expression also removes any newlines.
 
 Templates are frequently used to creat HTML pages. Source data that contains
 characters that have meaning within HTML (like <. >, &) needs to be escaped.
-It is often inconvenient to perform such escaping within the JSON data. With `Environment::set_html_autoescape(true)`, Inja can be configured to
+It is often inconvenient to perform such escaping within the JSON data. With `Environment::set_html_autoescape(true)`, Iris can be configured to
 HTML escape each and every string created.
 
 ### Comments
 
 Comments can be written with the `{# ... #}` syntax.
-```.cpp
+```cpp
 render("Hello{# Todo #}!", data); // "Hello!"
 ```
 
 ### Exceptions
 
-Inja uses exceptions to handle ill-formed template input. However, exceptions can be switched off with either using the compiler flag `-fno-exceptions` or by defining the symbol `INJA_NOEXCEPTION`. In this case, exceptions are replaced by `abort()` calls.
+Iris uses exceptions to handle ill-formed template input. However, exceptions can be switched off with either using the compiler flag `-fno-exceptions` or by defining the symbol `IRIS_NOEXCEPTION`. In this case, exceptions are replaced by `abort()` calls.
 
 
 ## Supported compilers
 
-Inja uses the `string_view` feature of the C++17 STL. Currently, the following compilers are tested:
-
-- GCC 8 - 11 (and possibly later)
-- Clang 5 - 12 (and possibly later)
-- Microsoft Visual C++ 2017 15.0 - 2022 (and possibly later)
-
-A list of supported compiler / os versions can be found in the [CI definition](https://github.com/pantor/inja/blob/master/.github/workflows/ci.yml).
+Iris requires C++20. This should be supported by most distros.

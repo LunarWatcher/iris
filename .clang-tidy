@@ -14,9 +14,10 @@ Checks: >
   -modernize-*,
   -readability-function-cognitive-complexity,
   -readability-identifier-length,
-  -readability-named-parameter
+  -readability-named-parameter,
+  -cppcoreguidelines-avoid-do-while
 
 # Turn all the warnings from the checks above into errors.
-HeaderFilterRegex: '.*/include/inja/.*\.hpp$'
+HeaderFilterRegex: '.*/include/iris/.*\.hpp$'
 UseColor: true
 WarningsAsErrors: ''
