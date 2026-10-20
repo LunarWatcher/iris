@@ -13,7 +13,7 @@
     "scripts"
   ],
   "name": "Iris templates",
-  "prefix": "",
+  "prefix": "/iris",
   "theme": "_default",
   "toc-start-level": 2
 }
