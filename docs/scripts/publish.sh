@@ -14,7 +14,7 @@ cd "$git_root"
 cd docs
 rm -rf pages
 
-time -- "$violet_exe" generate -d
+time -- "violet" generate -d
 if [[ $? != 0 ]]; then
     echo "Generation failed"
     exit 1

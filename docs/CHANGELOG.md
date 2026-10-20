@@ -34,4 +34,4 @@ Migration guide:
 
 [unreleased]: https://codeberg.org/LunarWatcher/iris/compare/v0.1.0...master
 <!-- [v0.4.0]: https://codeberg.org/LunarWatcher/iris/compare/v0.3.0...v0.4.0 -->
-[v1.0.0]: https://codeberg.org/LunarWatcher/iris/releases/tag/v0.1.0
+[v0.1.0]: https://codeberg.org/LunarWatcher/iris/releases/tag/v0.1.0
