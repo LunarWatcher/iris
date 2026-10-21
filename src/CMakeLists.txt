@@ -1,8 +1,11 @@
-add_library(iris INTERFACE)
+add_library(iris
+    ./iris/data/DataObject.cpp
+)
 add_library(iris::iris ALIAS iris)
 
-target_include_directories(iris INTERFACE
-  ./
+target_include_directories(iris
+PUBLIC
+    ./
 )
 
 if(IRIS_USE_EMBEDDED_JSON)

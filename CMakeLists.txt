@@ -21,6 +21,10 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     endif()
 
     option(MAGPIE_BUILD_TESTS "Whether or not to build tests" ON)
+
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 else()
     message (STATUS "iris: Running as a submodule")
     set(IRIS_STANDALONE OFF)

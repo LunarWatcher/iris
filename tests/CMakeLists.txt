@@ -1,5 +1,7 @@
-add_executable(tests 
+add_executable(tests
     src/Main.cpp
+
+    src/data/DataObjectTests.cpp
 
     src/parsing/SubstitutionTests.cpp
 )
