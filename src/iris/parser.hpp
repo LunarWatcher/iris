@@ -68,8 +68,13 @@ class Parser {
     }
 
     void add_literal(Arguments &arguments, const char* content_ptr) {
-        const std::string data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
-        arguments.emplace_back(std::make_shared<LiteralNode>(data_text, data_text.data() - content_ptr));
+        // TODO: Why does the linter not like this .data call? The length should be properly provided
+        const std::string_view data_text(
+            literal_start.data(),
+            tok.text.data() - literal_start.data() + tok.text.size()
+        );
+        DataObject root;
+        arguments.emplace_back(std::make_shared<LiteralNode>(std::move(root), data_text.data() - content_ptr));
     }
 
     void add_operator(Arguments &arguments, OperatorStack &operator_stack) {

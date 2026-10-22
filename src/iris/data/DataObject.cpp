@@ -62,10 +62,10 @@ DataObject::DataObject(DataObject&& src) noexcept : data(std::move(src.data)) {
     src.data = null_t;
 }
 
-std::string DataObject::serialize(bool nested) const {
+std::string DataObject::serialize(bool nested, DataObject* renderData) const {
     std::stringstream acc;
 
-    std::visit([&](const auto& value) {
+    std::visit([&](const auto& value) -> void {
         using T = std::decay_t<decltype(value)>;
         if constexpr (std::is_same_v<NullPtr, T>) {
             acc << "null";
@@ -95,6 +95,17 @@ std::string DataObject::serialize(bool nested) const {
                 acc << value->at(i).serialize(nested = true);
             }
             acc << ']';
+        } else if constexpr (std::is_same_v<DataPointer, T>) {
+            if (renderData != nullptr) {
+                acc << (*renderData)[value].serialize();
+            } else {
+                for (size_t i = 0; i < value.path.size(); ++i) {
+                    if (i != 0) {
+                        acc << ".";
+                    }
+                    acc << value.path.at(i);
+                }
+            }
         } else {
             acc << std::to_string(value);
         }
@@ -187,7 +198,6 @@ bool DataObject::operator>=(const DataObject& other) const {
     }, other.data, this->data);
 }
 bool DataObject::operator<(const DataObject& other) const {
-    
     return std::visit([](const auto& a, const auto& b) -> bool {
         using t1 = std::decay_t<decltype(a)>;
         using t2 = std::decay_t<decltype(b)>;

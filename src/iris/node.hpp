@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "function_storage.hpp"
+#include "iris/data/DataPointer.hpp"
 #include "utils.hpp"
 
 namespace iris {
@@ -100,7 +101,7 @@ class LiteralNode : public ExpressionNode {
 public:
     const DataObject value;
 
-    explicit LiteralNode(const DataObject& value, size_t pos): ExpressionNode(pos), value(value) {}
+    explicit LiteralNode(DataObject&& value, size_t pos): ExpressionNode(pos), value(std::move(value)) {}
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
@@ -110,22 +111,12 @@ public:
 class DataNode : public ExpressionNode {
 public:
     const std::string name;
-    const std::string ptr;
+    const DataPointer ptr;
 
-    // TODO: we currently don't support JSON pointers, so this does not make much sense. This also breaks if a key has a
-    // / in it
-    static std::string convert_dot_to_ptr(std::string_view ptr_name) {
-        std::string result;
-        do {
-            std::string_view part;
-            std::tie(part, ptr_name) = string_view::split(ptr_name, '.');
-            result.push_back('/');
-            result.append(part.begin(), part.end());
-        } while (!ptr_name.empty());
-        return result;
-    }
-
-    explicit DataNode(std::string_view ptr_name, size_t pos): ExpressionNode(pos), name(ptr_name), ptr(ptr_name) {}
+    explicit DataNode(
+        std::string_view ptr_name,
+        size_t pos
+    ): ExpressionNode(pos), name(ptr_name), ptr(DataPointer(this->name)) {}
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);

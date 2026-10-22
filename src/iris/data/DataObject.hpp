@@ -1,5 +1,6 @@
 #pragma once
 
+#include "iris/data/DataPointer.hpp"
 #include <cstdint>
 #include <format>
 #include <memory>
@@ -38,7 +39,7 @@ using ObjectPtr = std::shared_ptr<Object>;
 /**
  * TODOs:
  * * Can we make two iterators instead of one, where one is basically a value iterator and the other is a key-value
- *   iterator? A hybrid iterator appears moot
+ *   iterator? A hybrid iterator appears moot (and an attempt to do so failed and was removed)
  */
 class DataObject {
 private:
@@ -50,7 +51,8 @@ private:
         Int,
         UInt,
         Float,
-        NullPtr
+        NullPtr,
+        DataPointer
     > data;
     void destroy();
 public:
@@ -70,6 +72,8 @@ public:
     DataObject(Object&& value);
 
     DataObject(const NullPtr& null);
+    // TODO: this can be private with some `friend class`es since it's meant to be internal use only
+    DataObject(const DataPointer& dataPointer);
 
     DataObject(Boolean value) : data(value) {}
 
@@ -192,6 +196,77 @@ public:
             }
         }, data);
     }
+    const DataObject& at(const DataPointer& ptr, size_t offset = 0) const {
+        return std::visit([&](const auto& value) -> DataObject& {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ObjectPtr>
+            ) {
+                auto& it = at(ptr.path.at(offset));
+
+                if (offset == ptr.path.size() - 1) {
+                    return it;
+                }
+                return it.get(ptr, offset + 1);
+            } else if constexpr (
+                 std::is_same_v<T, ArrayPtr>
+            ) {
+                // TODO: error handle
+                size_t index = std::stoull(ptr.path.at(offset));
+
+                auto& it = at(index);
+                if (offset == ptr.path.size() - 1) {
+                    return it;
+                }
+                return it.get(ptr, offset + 1);
+            } else {
+                throw std::runtime_error("Critical: called operator[str] on a non-object");
+            }
+        }, data);
+    }
+
+    DataObject& get(const DataPointer& ptr, size_t offset = 0) {
+        return std::visit([&](const auto& value) -> DataObject& {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ObjectPtr>
+            ) {
+                auto& it = at(ptr.path.at(offset));
+
+                if (offset == ptr.path.size() - 1) {
+                    return it;
+                }
+                return it.get(ptr, offset + 1);
+            } else if constexpr (
+                 std::is_same_v<T, ArrayPtr>
+            ) {
+                // TODO: error handle
+                size_t index = std::stoull(ptr.path.at(offset));
+
+                auto& it = at(index);
+                if (offset == ptr.path.size() - 1) {
+                    return it;
+                }
+                return it.get(ptr, offset + 1);
+            } else {
+                throw std::runtime_error("Critical: called operator[str] on a non-object");
+            }
+        }, data);
+    }
+
+    DataObject& operator[](const DataPointer& ptr) {
+        return std::visit([&](const auto& value) -> DataObject& {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ObjectPtr>
+                 || std::is_same_v<T, ArrayPtr>
+            ) {
+                return get(ptr, 0);
+            } else {
+                throw std::runtime_error("Critical: called operator[str] on a non-object");
+            }
+        }, data);
+    }
 
     DataObject& at(size_t pos) const {
         return (*this)[pos];
@@ -254,6 +329,40 @@ public:
         }, data);
     }
 
+    bool contains(const DataPointer& ptr, size_t offset = 0) const {
+        return std::visit([&](const auto& value) -> bool {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ObjectPtr>
+            ) {
+                if (!contains(ptr.path.at(offset))) {
+                    return false;
+                }
+                if (offset == ptr.path.size() - 1) {
+                    return true;
+                }
+                const auto& it = at(ptr.path.at(offset));
+                return it.contains(ptr, offset + 1);
+            } else if constexpr (
+                 std::is_same_v<T, ArrayPtr>
+            ) {
+                // TODO: error handle
+                size_t index = std::stoull(ptr.path.at(offset));
+
+                if (value->size() <= index) {
+                    return false;
+                }
+                if (offset == ptr.path.size() - 1) {
+                    return true;
+                }
+                const auto& it = at(index);
+                return it.contains(ptr, offset + 1);
+            } else {
+                throw std::runtime_error("Critical: called operator[str] on a non-object");
+            }
+        }, data);
+    }
+
     size_t size() const {
         return std::visit([&](const auto& value) -> size_t {
             using T = std::decay_t<decltype(value)>;
@@ -287,7 +396,7 @@ public:
     /**
      * Contains JSON serialization.
      */
-    std::string serialize(bool nested = false) const;
+    std::string serialize(bool nested = false, DataObject* renderData = nullptr) const;
     operator std::string() const {
         return serialize();
     }
