@@ -178,6 +178,26 @@ TEST_CASE("DataObject serialization") {
         };
         REQUIRE(o.serialize() == "[\"hi\",\"\\\"there\"]");
     }
+    SECTION("should serialize bools properly") {
+        iris::DataObject o(true);
+        REQUIRE(o.serialize() == "true");
+    }
+    SECTION("should serialize ints properly") {
+        iris::DataObject signedPositive(1);
+        iris::DataObject signedNegative(-1);
+        iris::DataObject unsignedNum((uint32_t) 1);
+
+        REQUIRE(signedPositive.serialize() == "1");
+        REQUIRE(signedNegative.serialize() == "-1");
+        REQUIRE(unsignedNum.serialize() == "1");
+    }
+    SECTION("should serialize floats properly") {
+        iris::DataObject positiveFloat(6.9);
+        iris::DataObject negativeFloat(-6.9);
+        // to_string adds a bunch of decimals, so can't do an ==
+        REQUIRE(positiveFloat.serialize().starts_with("6.9"));
+        REQUIRE(negativeFloat.serialize().starts_with("-6.9"));
+    }
 }
 
 }

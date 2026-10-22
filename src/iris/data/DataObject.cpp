@@ -113,6 +113,8 @@ std::string DataObject::serialize(bool nested, DataObject* renderData) const {
                     acc << value.path.at(i);
                 }
             }
+        } else if constexpr (std::is_same_v<Boolean, T>) {
+            acc << (value ? "true" : "false");
         } else {
             acc << std::to_string(value);
         }
