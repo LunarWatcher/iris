@@ -2,13 +2,11 @@
 
 #include "iris/data/DataPointer.hpp"
 #include <cstdint>
-#include <format>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <variant>
 #include <vector>
-#include <iterator>
 
 namespace iris {
 
@@ -73,8 +71,8 @@ public:
 
     DataObject(const NullPtr& null);
     // TODO: this can be private with some `friend class`es since it's meant to be internal use only
-    explicit DataObject(const DataPointer& dataPointer);
-    explicit DataObject(DataPointer&& dataPointer);
+    DataObject(const DataPointer& dataPointer);
+    DataObject(DataPointer&& dataPointer);
 
     DataObject(Boolean value);
 

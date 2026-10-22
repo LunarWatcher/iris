@@ -1,3 +1,4 @@
+#include "iris/data/DataPointer.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstdint>
@@ -197,6 +198,20 @@ TEST_CASE("DataObject serialization") {
         // to_string adds a bunch of decimals, so can't do an ==
         REQUIRE(positiveFloat.serialize().starts_with("6.9"));
         REQUIRE(negativeFloat.serialize().starts_with("-6.9"));
+    }
+    SECTION("should serialize pointers to a pointer ref") {
+        iris::DataObject obj = iris::Object {
+            {"key", iris::DataPointer("a.str")}
+        };
+        iris::DataObject renderData = iris::Object {
+            {"a", iris::Object {
+                {"str", "trans rights are human rights"}
+            }}
+        };
+
+        REQUIRE(obj.serialize() == R"({"key":a.str})");
+        REQUIRE(obj.serialize(false, &renderData) == R"({"key":"trans rights are human rights"})");
+        
     }
 }
 

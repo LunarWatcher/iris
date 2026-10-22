@@ -3,6 +3,7 @@
 #include <variant>
 #include <type_traits>
 #include <sstream>
+#include <format>
 
 namespace iris {
 
@@ -90,7 +91,7 @@ std::string DataObject::serialize(bool nested, DataObject* renderData) const {
                     acc << ',';
                 }
                 hasFirst = true;
-                acc << std::quoted(k, '"', '\\') << ":" << v.serialize(nested = true);
+                acc << std::quoted(k, '"', '\\') << ":" << v.serialize(true, renderData);
             }
             acc << '}';
         } else if constexpr (std::is_same_v<ArrayPtr, T>) {
@@ -99,12 +100,12 @@ std::string DataObject::serialize(bool nested, DataObject* renderData) const {
                 if (i != 0) {
                     acc << ',';
                 }
-                acc << value->at(i).serialize(nested = true);
+                acc << value->at(i).serialize(true, renderData);
             }
             acc << ']';
         } else if constexpr (std::is_same_v<DataPointer, T>) {
             if (renderData != nullptr) {
-                acc << (*renderData)[value].serialize();
+                acc << (*renderData)[value].serialize(nested, renderData);
             } else {
                 for (size_t i = 0; i < value.path.size(); ++i) {
                     if (i != 0) {
