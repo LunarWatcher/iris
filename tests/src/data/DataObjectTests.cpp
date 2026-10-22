@@ -88,7 +88,7 @@ TEST_CASE("DataObject init") {
     }
 }
 
-TEST_CASE("DataObject comparison") {
+TEST_CASE("DataObject equality") {
     SECTION("Primitives") {
         REQUIRE(iris::DataObject(3) == iris::DataObject(3));
         INFO((iris::DataObject(3) == iris::DataObject(3.0)));
@@ -109,6 +109,51 @@ TEST_CASE("DataObject comparison") {
     }
     SECTION("Vectors (mixed types") {
         REQUIRE(iris::DataObject { 1, "a" } == iris::DataObject { 1, "a" });
+    }
+}
+
+TEST_CASE("DataObject comparison") {
+    SECTION("greater than/less than") {
+        SECTION("Ints") {
+            REQUIRE(iris::DataObject(3) > iris::DataObject(2));
+            REQUIRE(iris::DataObject(2) < iris::DataObject(3));
+            REQUIRE_FALSE(iris::DataObject(3) < iris::DataObject(2));
+            REQUIRE_FALSE(iris::DataObject(2) > iris::DataObject(3));
+
+            REQUIRE_FALSE(iris::DataObject(3) > iris::DataObject(3));
+            REQUIRE_FALSE(iris::DataObject(3) < iris::DataObject(3));
+        }
+
+        SECTION("Floats") {
+            REQUIRE(iris::DataObject(3.0) > iris::DataObject(2.0));
+            REQUIRE(iris::DataObject(2.0) < iris::DataObject(3.0));
+            REQUIRE_FALSE(iris::DataObject(3.0) < iris::DataObject(2.0));
+            REQUIRE_FALSE(iris::DataObject(2.0) > iris::DataObject(3.0));
+
+            REQUIRE_FALSE(iris::DataObject(3.0) > iris::DataObject(3.0));
+            REQUIRE_FALSE(iris::DataObject(3.0) < iris::DataObject(3.0));
+        }
+    }
+    SECTION("greater than/less than or equal") {
+        SECTION("Ints") {
+            REQUIRE(iris::DataObject(3) >= iris::DataObject(2));
+            REQUIRE(iris::DataObject(2) <= iris::DataObject(3));
+            REQUIRE_FALSE(iris::DataObject(3) <= iris::DataObject(2));
+            REQUIRE_FALSE(iris::DataObject(2) >= iris::DataObject(3));
+
+            REQUIRE(iris::DataObject(3) >= iris::DataObject(3));
+            REQUIRE(iris::DataObject(3) <= iris::DataObject(3));
+        }
+
+        SECTION("Floats") {
+            REQUIRE(iris::DataObject(3.0) >= iris::DataObject(2.0));
+            REQUIRE(iris::DataObject(2.0) <= iris::DataObject(3.0));
+            REQUIRE_FALSE(iris::DataObject(3.0) <= iris::DataObject(2.0));
+            REQUIRE_FALSE(iris::DataObject(2.0) >= iris::DataObject(3.0));
+
+            REQUIRE(iris::DataObject(3.0) >= iris::DataObject(3.0));
+            REQUIRE(iris::DataObject(3.0) <= iris::DataObject(3.0));
+        }
     }
 }
 

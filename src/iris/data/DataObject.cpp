@@ -154,7 +154,7 @@ bool DataObject::operator==(const DataObject& other) const {
         } else {
             return false;
         }
-    }, other.data, this->data);
+    }, this->data, other.data);
 }
 
 bool DataObject::operator<=(const DataObject& other) const {
@@ -178,7 +178,7 @@ bool DataObject::operator<=(const DataObject& other) const {
         } else {
             return false;
         }
-    }, other.data, this->data);
+    }, this->data, other.data);
 }
 bool DataObject::operator>=(const DataObject& other) const {
     
@@ -202,7 +202,7 @@ bool DataObject::operator>=(const DataObject& other) const {
         } else {
             return false;
         }
-    }, other.data, this->data);
+    }, this->data, other.data);
 }
 bool DataObject::operator<(const DataObject& other) const {
     return std::visit([](const auto& a, const auto& b) -> bool {
@@ -225,7 +225,7 @@ bool DataObject::operator<(const DataObject& other) const {
         } else {
             return false;
         }
-    }, other.data, this->data);
+    }, this->data, other.data);
 }
 bool DataObject::operator>(const DataObject& other) const {
     return std::visit([](const auto& a, const auto& b) -> bool {
@@ -248,7 +248,7 @@ bool DataObject::operator>(const DataObject& other) const {
         } else {
             return false;
         }
-    }, other.data, this->data);
+    }, this->data, other.data);
 }
 bool DataObject::operator!=(const DataObject& other) const {
     
@@ -269,7 +269,7 @@ bool DataObject::operator!=(const DataObject& other) const {
         } else {
             return true;
         }
-    }, other.data, this->data);
+    }, this->data, other.data);
 }
 
 
