@@ -34,13 +34,13 @@ DataObject& DataObject::operator=(const DataObject& other) {
             || !std::is_pointer_v<type>
         ) {
             data = value;
-        } else if constexpr (std::is_same_v<type, String*>) {
+        } else if constexpr (std::is_same_v<type, StringPtr>) {
             data = std::make_shared<String>(value->begin(), value->end());
-        } else if constexpr (std::is_same_v<type, Array*>) {
+        } else if constexpr (std::is_same_v<type, ArrayPtr>) {
             auto vec = std::make_shared<Array>();
             *vec = *value;
             data = vec;
-        } else if constexpr (std::is_same_v<type, Object*>) {
+        } else if constexpr (std::is_same_v<type, ObjectPtr>) {
             auto map = std::make_shared<Object>();
             *map = *value;
             data = map;
@@ -55,28 +55,6 @@ DataObject& DataObject::operator=(DataObject&& other) noexcept {
     this->data = other.data;
     other.data = DataObject::null_t;
     return *this;
-}
-
-bool DataObject::operator==(const DataObject& other) const {
-
-    return std::visit([](const auto& a, const auto& b) {
-        using t1 = std::decay_t<decltype(a)>;
-        using t2 = std::decay_t<decltype(b)>;
-        if constexpr (std::is_same_v<t1, t2>) {
-            if constexpr (
-                std::is_same_v<t1, StringPtr>
-                || std::is_same_v<t1, ObjectPtr>
-                || std::is_same_v<t1, ArrayPtr>
-                || std::is_same_v<t1, NullPtr>
-            ) {
-                return (*a) == (*b);
-            } else {
-                return a == b;
-            }
-        } else {
-            return false;
-        }
-    }, other.data, this->data);
 }
 
 DataObject::DataObject(const DataObject& src) : data(src.data) {}
@@ -123,6 +101,158 @@ std::string DataObject::serialize(bool nested) const {
     }, data);
     
     return acc.str();
+}
+
+bool DataObject::empty() const {
+    return std::visit([](const auto& value) -> bool {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (
+            std::is_same_v<T, StringPtr>
+            || std::is_same_v<T, ObjectPtr>
+            || std::is_same_v<T, ArrayPtr>
+        ) {
+            return value->empty();
+        } else {
+            throw std::runtime_error("Critical: called empty on a non-string/array type");
+        }
+    }, data);
+}
+
+bool DataObject::operator==(const DataObject& other) const {
+    return std::visit([](const auto& a, const auto& b) {
+        using t1 = std::decay_t<decltype(a)>;
+        using t2 = std::decay_t<decltype(b)>;
+        if constexpr (std::is_same_v<t1, t2>) {
+            if constexpr (
+                std::is_same_v<t1, StringPtr>
+                || std::is_same_v<t1, ObjectPtr>
+                || std::is_same_v<t1, ArrayPtr>
+                || std::is_same_v<t1, NullPtr>
+            ) {
+                return (*a) == (*b);
+            } else {
+                return a == b;
+            }
+        } else {
+            return false;
+        }
+    }, other.data, this->data);
+}
+
+bool DataObject::operator<=(const DataObject& other) const {
+    return std::visit([](const auto& a, const auto& b) -> bool {
+        using t1 = std::decay_t<decltype(a)>;
+        using t2 = std::decay_t<decltype(b)>;
+        if constexpr (std::is_same_v<t1, t2>) {
+            if constexpr (
+                std::is_same_v<t1, StringPtr>
+                || std::is_same_v<t1, ArrayPtr>
+            ) {
+                return (*a) <= (*b);
+            } else if constexpr (
+                std::is_same_v<t1, ObjectPtr>
+                || std::is_same_v<t1, NullPtr>
+            ) {
+                throw std::runtime_error("operator<= on objects and null is undefined");
+            } else {
+                return a <= b;
+            }
+        } else {
+            return false;
+        }
+    }, other.data, this->data);
+}
+bool DataObject::operator>=(const DataObject& other) const {
+    
+    return std::visit([](const auto& a, const auto& b) -> bool {
+        using t1 = std::decay_t<decltype(a)>;
+        using t2 = std::decay_t<decltype(b)>;
+        if constexpr (std::is_same_v<t1, t2>) {
+            if constexpr (
+                std::is_same_v<t1, StringPtr>
+                || std::is_same_v<t1, ArrayPtr>
+            ) {
+                return (*a) >= (*b);
+            } else if constexpr (
+                std::is_same_v<t1, ObjectPtr>
+                || std::is_same_v<t1, NullPtr>
+            ) {
+                throw std::runtime_error("operator>= on objects and null is undefined");
+            } else {
+                return a >= b;
+            }
+        } else {
+            return false;
+        }
+    }, other.data, this->data);
+}
+bool DataObject::operator<(const DataObject& other) const {
+    
+    return std::visit([](const auto& a, const auto& b) -> bool {
+        using t1 = std::decay_t<decltype(a)>;
+        using t2 = std::decay_t<decltype(b)>;
+        if constexpr (std::is_same_v<t1, t2>) {
+            if constexpr (
+                std::is_same_v<t1, StringPtr>
+                || std::is_same_v<t1, ArrayPtr>
+            ) {
+                return (*a) > (*b);
+            } else if constexpr (
+                std::is_same_v<t1, ObjectPtr>
+                || std::is_same_v<t1, NullPtr>
+            ) {
+                throw std::runtime_error("operator< on objects and null is undefined");
+            } else {
+                return a < b;
+            }
+        } else {
+            return false;
+        }
+    }, other.data, this->data);
+}
+bool DataObject::operator>(const DataObject& other) const {
+    return std::visit([](const auto& a, const auto& b) -> bool {
+        using t1 = std::decay_t<decltype(a)>;
+        using t2 = std::decay_t<decltype(b)>;
+        if constexpr (std::is_same_v<t1, t2>) {
+            if constexpr (
+                std::is_same_v<t1, StringPtr>
+                || std::is_same_v<t1, ArrayPtr>
+            ) {
+                return (*a) > (*b);
+            } else if constexpr (
+                std::is_same_v<t1, ObjectPtr>
+                || std::is_same_v<t1, NullPtr>
+            ) {
+                throw std::runtime_error("operator> on objects and null is undefined");
+            } else {
+                return a > b;
+            }
+        } else {
+            return false;
+        }
+    }, other.data, this->data);
+}
+bool DataObject::operator!=(const DataObject& other) const {
+    
+    return std::visit([](const auto& a, const auto& b) {
+        using t1 = std::decay_t<decltype(a)>;
+        using t2 = std::decay_t<decltype(b)>;
+        if constexpr (std::is_same_v<t1, t2>) {
+            if constexpr (
+                std::is_same_v<t1, StringPtr>
+                || std::is_same_v<t1, ObjectPtr>
+                || std::is_same_v<t1, ArrayPtr>
+                || std::is_same_v<t1, NullPtr>
+            ) {
+                return (*a) != (*b);
+            } else {
+                return a != b;
+            }
+        } else {
+            return true;
+        }
+    }, other.data, this->data);
 }
 
 }

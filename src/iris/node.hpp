@@ -9,7 +9,6 @@
 
 #include "function_storage.hpp"
 #include "utils.hpp"
-#include "json.hpp"
 
 namespace iris {
 
@@ -99,9 +98,11 @@ public:
 
 class LiteralNode : public ExpressionNode {
 public:
-    const json value;
+    const DataObject value;
 
-    explicit LiteralNode(std::string_view data_text, size_t pos): ExpressionNode(pos), value(json::parse(data_text)) {}
+    explicit LiteralNode(std::string_view data_text, size_t pos): ExpressionNode(pos), value(
+        "TODO: Fix parsing"
+    ) {}
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
@@ -111,8 +112,10 @@ public:
 class DataNode : public ExpressionNode {
 public:
     const std::string name;
-    const json::json_pointer ptr;
+    const std::string ptr;
 
+    // TODO: we currently don't support JSON pointers, so this does not make much sense. This also breaks if a key has a
+    // / in it
     static std::string convert_dot_to_ptr(std::string_view ptr_name) {
         std::string result;
         do {
@@ -124,7 +127,7 @@ public:
         return result;
     }
 
-    explicit DataNode(std::string_view ptr_name, size_t pos): ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_ptr(ptr_name))) {}
+    explicit DataNode(std::string_view ptr_name, size_t pos): ExpressionNode(pos), name(ptr_name), ptr(ptr_name) {}
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);

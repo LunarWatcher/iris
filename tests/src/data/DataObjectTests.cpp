@@ -91,7 +91,10 @@ TEST_CASE("DataObject init") {
 TEST_CASE("DataObject comparison") {
     SECTION("Primitives") {
         REQUIRE(iris::DataObject(3) == iris::DataObject(3));
+        INFO((iris::DataObject(3) == iris::DataObject(3.0)));
         REQUIRE(iris::DataObject(3) != iris::DataObject(3.0));
+        REQUIRE(iris::DataObject(3.0) == iris::DataObject(3.0));
+        REQUIRE(iris::DataObject(3) != iris::DataObject(4.0));
         REQUIRE(iris::DataObject("3.0") != iris::DataObject(3.0));
         REQUIRE(iris::DataObject("3.0") == iris::DataObject("3.0"));
     }

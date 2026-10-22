@@ -1,11 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <format>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <variant>
 #include <vector>
+#include <iterator>
 
 namespace iris {
 
@@ -26,10 +28,18 @@ using UInt = uint64_t;
 using Float = double;
 
 using NullPtr = std::shared_ptr<Null>;
-using StringPtr = std::shared_ptr<std::string>;
-using ArrayPtr = std::shared_ptr<std::vector<DataObject>>;
-using ObjectPtr = std::shared_ptr<std::unordered_map<std::string, DataObject>>;
 
+using StringPtr = std::shared_ptr<String>;
+using ArrayPtr = std::shared_ptr<Array>;
+using ObjectPtr = std::shared_ptr<Object>;
+
+
+
+/**
+ * TODOs:
+ * * Can we make two iterators instead of one, where one is basically a value iterator and the other is a key-value
+ *   iterator? A hybrid iterator appears moot
+ */
 class DataObject {
 private:
     std::variant<
@@ -44,6 +54,7 @@ private:
     > data;
     void destroy();
 public:
+
     static inline NullPtr null_t = std::make_shared<Null>();
 
     DataObject();
@@ -64,7 +75,7 @@ public:
 
     template <std::floating_point T>
     DataObject(T value) : data((Float) value) {}
-    
+
     template <std::signed_integral T>
     DataObject(T value) : data((Int) value) {}
 
@@ -77,6 +88,11 @@ public:
     DataObject& operator=(DataObject&& other) noexcept;
 
     bool operator==(const DataObject& other) const;
+    bool operator<=(const DataObject& other) const;
+    bool operator>=(const DataObject& other) const;
+    bool operator<(const DataObject& other) const;
+    bool operator>(const DataObject& other) const;
+    bool operator!=(const DataObject& other) const;
 
     DataObject(std::initializer_list<DataObject> list) : DataObject(Array(list)) {}
     // TODO: because of how the objects are constructed here, there's no way to tell a list from an object, so automatic
@@ -98,6 +114,18 @@ public:
             return std::get<T>(data);
         }
     }
+    template <typename T>
+    T& get() {
+        if constexpr (
+            std::is_same_v<String, T>
+            || std::is_same_v<Object, T>
+            || std::is_same_v<Array, T>
+        ) {
+            return *std::get<std::shared_ptr<T>>(data);
+        } else {
+            return std::get<T>(data);
+        }
+    }
 
     bool is_null() const { return std::holds_alternative<NullPtr>(data); }
     bool is_int() const { return std::holds_alternative<Int>(data); }
@@ -107,6 +135,154 @@ public:
     bool is_string() const { return std::holds_alternative<StringPtr>(data); }
     bool is_array() const { return std::holds_alternative<ArrayPtr>(data); }
     bool is_object() const { return std::holds_alternative<ObjectPtr>(data); }
+    bool is_number() const { return is_int() || is_uint() || is_float(); }
+
+    bool is_any_int() const { return is_int() || is_uint(); }
+
+    Int coerceInt() const {
+        if (std::holds_alternative<Int>(data)) {
+            return std::get<Int>(data);
+        } else if (std::holds_alternative<Float>(data)) {
+            return (Int) std::get<Float>(data);
+        } else if (std::holds_alternative<UInt>(data)) {
+            return (Int) std::get<UInt>(data);
+        } else {
+            throw std::runtime_error("Not a numeric type");
+        }
+    }
+    Float coerceFloat() const {
+        if (std::holds_alternative<Int>(data)) {
+            return (Float) std::get<Int>(data);
+        } else if (std::holds_alternative<Float>(data)) {
+            return std::get<Float>(data);
+        } else if (std::holds_alternative<UInt>(data)) {
+            return (Float) std::get<UInt>(data);
+        } else {
+            throw std::runtime_error("Not a numeric type");
+        }
+    }
+
+    bool empty() const;
+
+    DataObject& operator[](const std::string& key) {
+        return std::visit([&](const auto& value) -> DataObject& {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ObjectPtr>
+            ) {
+                if (!value->contains(key)) {
+                    (*value)[key] = DataObject();
+                }
+                return value->at(key);
+            } else {
+                throw std::runtime_error("Critical: called operator[str] on a non-object");
+            }
+        }, data);
+    }
+
+    DataObject& operator[](size_t pos) const {
+        return std::visit([&](const auto& value) -> DataObject& {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ArrayPtr>
+            ) {
+                return value->at(pos);
+            } else {
+                throw std::runtime_error("Critical: called operator[int] on a non-object");
+            }
+        }, data);
+    }
+
+    DataObject& at(size_t pos) const {
+        return (*this)[pos];
+    }
+
+    DataObject& front() const {
+        return std::visit([&](const auto& value) -> DataObject& {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ArrayPtr>
+            ) {
+                return value->front();
+            } else {
+                throw std::runtime_error("Critical: called front on a non-object");
+            }
+        }, data);
+    }
+    DataObject& back() const {
+        return std::visit([&](const auto& value) -> DataObject& {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ArrayPtr>
+            ) {
+                return value->back();
+            } else {
+                throw std::runtime_error("Critical: called back on a non-object");
+            }
+        }, data);
+    }
+
+    DataObject& at(const std::string& key) const {
+        return std::visit([&](const auto& value) -> DataObject& {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ObjectPtr>
+            ) {
+                if (!value->contains(key)) {
+                    throw std::runtime_error(
+                        std::format("Illegal access on key {}", key)
+                    );
+                }
+                return value->at(key);
+            } else {
+                throw std::runtime_error("Critical: called at[str] on a non-object");
+            }
+        }, data);
+    }
+
+    bool contains(const std::string& key) const {
+        return std::visit([&](const auto& value) -> bool {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ObjectPtr>
+            ) {
+                return value->contains(key);
+
+            } else {
+                throw std::runtime_error("Critical: called exists on a non-object");
+            }
+        }, data);
+    }
+
+    size_t size() const {
+        return std::visit([&](const auto& value) -> size_t {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ObjectPtr>
+                 || std::is_same_v<T, ArrayPtr>
+                 || std::is_same_v<T, StringPtr>
+            ) {
+                return value->size();
+            } else {
+                throw std::runtime_error("Critical: called exists on a non-string/array/object");
+            }
+        }, data);
+    }
+
+    void clear() const {
+        std::visit([&](const auto& value) {
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (
+                 std::is_same_v<T, ObjectPtr>
+                 || std::is_same_v<T, ArrayPtr>
+                 || std::is_same_v<T, StringPtr>
+            ) {
+                value->clear();
+            } else {
+                throw std::runtime_error("Critical: called exists on a non-string/array/object");
+            }
+        }, data);
+    }
 
     /**
      * Contains JSON serialization.

@@ -17,7 +17,7 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(IRIS_STANDALONE ON)
 
     if (NOT WIN32)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -fsanitize=undefined")
     endif()
 
     option(MAGPIE_BUILD_TESTS "Whether or not to build tests" ON)

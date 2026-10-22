@@ -1,5 +1,6 @@
 #pragma once
 
+#include "iris/data/DataObject.hpp"
 #include <functional>
 #include <map>
 #include <string>
@@ -7,12 +8,10 @@
 #include <utility>
 #include <vector>
 
-#include "json.hpp"
-
 namespace iris {
 
-using Arguments = std::vector<const json*>;
-using CallbackFunction = std::function<json(Arguments& args)>;
+using Arguments = std::vector<const DataObject*>;
+using CallbackFunction = std::function<DataObject(Arguments& args)>;
 using VoidCallbackFunction = std::function<void(Arguments& args)>;
 
 /*!

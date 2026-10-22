@@ -5,7 +5,7 @@
 namespace {
 
 TEST_CASE("Variable substitution", "[variables]") {
-    std::string result = iris::render("{{ name }}", {
+    std::string result = iris::render("{{ name }}", iris::Object {
         { "name", "iris" },
         { "unused", "not included" }
     });

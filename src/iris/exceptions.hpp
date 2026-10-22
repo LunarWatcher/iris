@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <source_location>
 #include <stdexcept>
 #include <string>
 
@@ -40,6 +41,13 @@ struct FileError : public IrisError {
 
 struct DataError : public IrisError {
     explicit DataError(const std::string& message, SourceLocation location): IrisError("data_error", message, location) {}
+    explicit DataError(
+        const std::string& message,
+        std::source_location loc = std::source_location::current()
+    ): IrisError("data_error", message, SourceLocation {
+            .line = loc.line(),
+            .column = loc.column()
+        }) {}
 };
 
 } // namespace iris
