@@ -73,9 +73,10 @@ public:
 
     DataObject(const NullPtr& null);
     // TODO: this can be private with some `friend class`es since it's meant to be internal use only
-    DataObject(const DataPointer& dataPointer);
+    explicit DataObject(const DataPointer& dataPointer);
+    explicit DataObject(DataPointer&& dataPointer);
 
-    DataObject(Boolean value) : data(value) {}
+    DataObject(Boolean value);
 
     template <std::floating_point T>
     DataObject(T value) : data((Float) value) {}
@@ -98,7 +99,7 @@ public:
     bool operator>(const DataObject& other) const;
     bool operator!=(const DataObject& other) const;
 
-    DataObject(std::initializer_list<DataObject> list) : DataObject(Array(list)) {}
+    DataObject(std::initializer_list<DataObject> list);
     // TODO: because of how the objects are constructed here, there's no way to tell a list from an object, so automatic
     // resolution for this constructor fails
     // DataObject(std::initializer_list<Object::value_type> list) : DataObject(Object(list)) {}
@@ -143,255 +144,33 @@ public:
 
     bool is_any_int() const { return is_int() || is_uint(); }
 
-    Int coerceInt() const {
-        if (std::holds_alternative<Int>(data)) {
-            return std::get<Int>(data);
-        } else if (std::holds_alternative<Float>(data)) {
-            return (Int) std::get<Float>(data);
-        } else if (std::holds_alternative<UInt>(data)) {
-            return (Int) std::get<UInt>(data);
-        } else {
-            throw std::runtime_error("Not a numeric type");
-        }
-    }
-    Float coerceFloat() const {
-        if (std::holds_alternative<Int>(data)) {
-            return (Float) std::get<Int>(data);
-        } else if (std::holds_alternative<Float>(data)) {
-            return std::get<Float>(data);
-        } else if (std::holds_alternative<UInt>(data)) {
-            return (Float) std::get<UInt>(data);
-        } else {
-            throw std::runtime_error("Not a numeric type");
-        }
-    }
+    Int coerceInt() const;
+    Float coerceFloat() const;
 
     bool empty() const;
 
-    DataObject& operator[](const std::string& key) {
-        return std::visit([&](const auto& value) -> DataObject& {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ObjectPtr>
-            ) {
-                if (!value->contains(key)) {
-                    (*value)[key] = DataObject();
-                }
-                return value->at(key);
-            } else {
-                throw std::runtime_error("Critical: called operator[str] on a non-object");
-            }
-        }, data);
-    }
+    const DataObject& at(const DataPointer& ptr, size_t offset = 0) const;
 
-    DataObject& operator[](size_t pos) const {
-        return std::visit([&](const auto& value) -> DataObject& {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ArrayPtr>
-            ) {
-                return value->at(pos);
-            } else {
-                throw std::runtime_error("Critical: called operator[int] on a non-object");
-            }
-        }, data);
-    }
-    const DataObject& at(const DataPointer& ptr, size_t offset = 0) const {
-        return std::visit([&](const auto& value) -> DataObject& {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ObjectPtr>
-            ) {
-                auto& it = at(ptr.path.at(offset));
+    DataObject& get(const DataPointer& ptr, size_t offset = 0);
 
-                if (offset == ptr.path.size() - 1) {
-                    return it;
-                }
-                return it.get(ptr, offset + 1);
-            } else if constexpr (
-                 std::is_same_v<T, ArrayPtr>
-            ) {
-                // TODO: error handle
-                size_t index = std::stoull(ptr.path.at(offset));
+    DataObject& at(size_t pos) const;
 
-                auto& it = at(index);
-                if (offset == ptr.path.size() - 1) {
-                    return it;
-                }
-                return it.get(ptr, offset + 1);
-            } else {
-                throw std::runtime_error("Critical: called operator[str] on a non-object");
-            }
-        }, data);
-    }
+    DataObject& front() const;
+    DataObject& back() const;
 
-    DataObject& get(const DataPointer& ptr, size_t offset = 0) {
-        return std::visit([&](const auto& value) -> DataObject& {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ObjectPtr>
-            ) {
-                auto& it = at(ptr.path.at(offset));
+    DataObject& at(const std::string& key) const;
 
-                if (offset == ptr.path.size() - 1) {
-                    return it;
-                }
-                return it.get(ptr, offset + 1);
-            } else if constexpr (
-                 std::is_same_v<T, ArrayPtr>
-            ) {
-                // TODO: error handle
-                size_t index = std::stoull(ptr.path.at(offset));
+    bool contains(const std::string& key) const;
 
-                auto& it = at(index);
-                if (offset == ptr.path.size() - 1) {
-                    return it;
-                }
-                return it.get(ptr, offset + 1);
-            } else {
-                throw std::runtime_error("Critical: called operator[str] on a non-object");
-            }
-        }, data);
-    }
+    bool contains(const DataPointer& ptr, size_t offset = 0) const;
 
-    DataObject& operator[](const DataPointer& ptr) {
-        return std::visit([&](const auto& value) -> DataObject& {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ObjectPtr>
-                 || std::is_same_v<T, ArrayPtr>
-            ) {
-                return get(ptr, 0);
-            } else {
-                throw std::runtime_error("Critical: called operator[str] on a non-object");
-            }
-        }, data);
-    }
+    size_t size() const;
 
-    DataObject& at(size_t pos) const {
-        return (*this)[pos];
-    }
+    void clear() const;
 
-    DataObject& front() const {
-        return std::visit([&](const auto& value) -> DataObject& {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ArrayPtr>
-            ) {
-                return value->front();
-            } else {
-                throw std::runtime_error("Critical: called front on a non-object");
-            }
-        }, data);
-    }
-    DataObject& back() const {
-        return std::visit([&](const auto& value) -> DataObject& {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ArrayPtr>
-            ) {
-                return value->back();
-            } else {
-                throw std::runtime_error("Critical: called back on a non-object");
-            }
-        }, data);
-    }
-
-    DataObject& at(const std::string& key) const {
-        return std::visit([&](const auto& value) -> DataObject& {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ObjectPtr>
-            ) {
-                if (!value->contains(key)) {
-                    throw std::runtime_error(
-                        std::format("Illegal access on key {}", key)
-                    );
-                }
-                return value->at(key);
-            } else {
-                throw std::runtime_error("Critical: called at[str] on a non-object");
-            }
-        }, data);
-    }
-
-    bool contains(const std::string& key) const {
-        return std::visit([&](const auto& value) -> bool {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ObjectPtr>
-            ) {
-                return value->contains(key);
-
-            } else {
-                throw std::runtime_error("Critical: called exists on a non-object");
-            }
-        }, data);
-    }
-
-    bool contains(const DataPointer& ptr, size_t offset = 0) const {
-        return std::visit([&](const auto& value) -> bool {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ObjectPtr>
-            ) {
-                if (!contains(ptr.path.at(offset))) {
-                    return false;
-                }
-                if (offset == ptr.path.size() - 1) {
-                    return true;
-                }
-                const auto& it = at(ptr.path.at(offset));
-                return it.contains(ptr, offset + 1);
-            } else if constexpr (
-                 std::is_same_v<T, ArrayPtr>
-            ) {
-                // TODO: error handle
-                size_t index = std::stoull(ptr.path.at(offset));
-
-                if (value->size() <= index) {
-                    return false;
-                }
-                if (offset == ptr.path.size() - 1) {
-                    return true;
-                }
-                const auto& it = at(index);
-                return it.contains(ptr, offset + 1);
-            } else {
-                throw std::runtime_error("Critical: called operator[str] on a non-object");
-            }
-        }, data);
-    }
-
-    size_t size() const {
-        return std::visit([&](const auto& value) -> size_t {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ObjectPtr>
-                 || std::is_same_v<T, ArrayPtr>
-                 || std::is_same_v<T, StringPtr>
-            ) {
-                return value->size();
-            } else {
-                throw std::runtime_error("Critical: called exists on a non-string/array/object");
-            }
-        }, data);
-    }
-
-    void clear() const {
-        std::visit([&](const auto& value) {
-            using T = std::decay_t<decltype(value)>;
-            if constexpr (
-                 std::is_same_v<T, ObjectPtr>
-                 || std::is_same_v<T, ArrayPtr>
-                 || std::is_same_v<T, StringPtr>
-            ) {
-                value->clear();
-            } else {
-                throw std::runtime_error("Critical: called exists on a non-string/array/object");
-            }
-        }, data);
-    }
+    DataObject& operator[](const DataPointer& ptr);
+    DataObject& operator[](const std::string& key);
+    DataObject& operator[](size_t pos) const;
 
     /**
      * Contains JSON serialization.

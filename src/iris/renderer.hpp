@@ -55,13 +55,13 @@ class Renderer : public NodeVisitor {
     const TemplateStorage& template_storage;
     const FunctionStorage& function_storage;
 
-    const Template* current_template;
+    const Template* current_template = nullptr;
     size_t current_level {0};
     std::vector<const Template*> template_stack;
     std::vector<const BlockStatementNode*> block_statement_stack;
 
-    const DataObject* data_input;
-    std::ostream* output_stream;
+    const DataObject* data_input = nullptr;
+    std::ostream* output_stream = nullptr;
 
     DataObject additional_data = Object {};
     DataObject* current_loop_data = nullptr;
