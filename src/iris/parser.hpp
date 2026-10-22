@@ -68,7 +68,7 @@ class Parser {
     }
 
     void add_literal(Arguments &arguments, const char* content_ptr) {
-        const std::string_view data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
+        const std::string data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
         arguments.emplace_back(std::make_shared<LiteralNode>(data_text, data_text.data() - content_ptr));
     }
 

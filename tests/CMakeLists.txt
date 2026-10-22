@@ -3,6 +3,7 @@ add_executable(tests
 
     src/data/DataObjectTests.cpp
 
+    src/parsing/LogicTests.cpp
     src/parsing/SubstitutionTests.cpp
 )
 

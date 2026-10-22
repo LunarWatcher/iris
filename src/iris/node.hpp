@@ -100,9 +100,7 @@ class LiteralNode : public ExpressionNode {
 public:
     const DataObject value;
 
-    explicit LiteralNode(std::string_view data_text, size_t pos): ExpressionNode(pos), value(
-        "TODO: Fix parsing"
-    ) {}
+    explicit LiteralNode(const DataObject& value, size_t pos): ExpressionNode(pos), value(value) {}
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
