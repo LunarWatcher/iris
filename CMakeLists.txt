@@ -10,7 +10,6 @@ option(COVERALLS "Generate coveralls data" OFF)
 option(IRIS_BUILD_TESTS "Whether or not to buidl tests" OFF)
 option(IRIS_ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
 option(IRIS_INSTALL "Generate install targets for iris" ON)
-option(IRIS_USE_EMBEDDED_JSON "Use the shipped json header if not available on the system" ON)
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     message (STATUS "iris: Running standalone")
