@@ -1,6 +1,7 @@
 #pragma once
 
 #include "iris/data/DataPointer.hpp"
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -9,12 +10,6 @@
 #include <vector>
 
 namespace iris {
-
-struct Null {
-    Null() noexcept = default;
-
-    bool operator==(const Null&) const { return true; }
-};
 
 class DataObject;
 
@@ -25,8 +20,7 @@ using Boolean = bool;
 using Int = int64_t;
 using UInt = uint64_t;
 using Float = double;
-
-using NullPtr = std::shared_ptr<Null>;
+using Null = std::nullptr_t;
 
 using StringPtr = std::shared_ptr<String>;
 using ArrayPtr = std::shared_ptr<Array>;
@@ -49,14 +43,11 @@ private:
         Int,
         UInt,
         Float,
-        NullPtr,
+        Null,
         DataPointer
     > data;
     void destroy();
 public:
-
-    static inline NullPtr null_t = std::make_shared<Null>();
-
     DataObject();
 
     DataObject(const String& value);
@@ -69,7 +60,8 @@ public:
     DataObject(const Object& value);
     DataObject(Object&& value);
 
-    DataObject(const NullPtr& null);
+    DataObject(Null null);
+
     // TODO: this can be private with some `friend class`es since it's meant to be internal use only
     DataObject(const DataPointer& dataPointer);
     DataObject(DataPointer&& dataPointer);
@@ -130,7 +122,7 @@ public:
         }
     }
 
-    bool is_null() const { return std::holds_alternative<NullPtr>(data); }
+    bool is_null() const { return std::holds_alternative<Null>(data); }
     bool is_int() const { return std::holds_alternative<Int>(data); }
     bool is_uint() const { return std::holds_alternative<UInt>(data); }
     bool is_float() const { return std::holds_alternative<Float>(data); }

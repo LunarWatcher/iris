@@ -9,10 +9,10 @@ namespace iris {
 
 DataObject::~DataObject() {
     // TODO: this was logical in earlier versions of this struct, but I don't think it's necessary anymore
-    if (std::holds_alternative<NullPtr>(data)) {
+    if (std::holds_alternative<Null>(data)) {
         return;
     }
-    this->data = DataObject::null_t;
+    this->data = nullptr;
 }
 
 DataObject::DataObject(const String& value) : data(std::make_shared<String>(value)) {}
@@ -24,8 +24,8 @@ DataObject::DataObject(Array&& value) : data(std::make_shared<Array>(std::move(v
 DataObject::DataObject(const Object& value) : data(std::make_shared<Object>(value)) {}
 DataObject::DataObject(Object&& value) : data(std::make_shared<Object>(std::move(value))) {}
 
-DataObject::DataObject(const NullPtr& null) : data(null) {}
-DataObject::DataObject() : data(DataObject::null_t) {}
+DataObject::DataObject(Null null) : data(null) {}
+DataObject::DataObject() : data(nullptr) {}
 
 DataObject::DataObject(const DataPointer& dataPointer) : data(dataPointer) {}
 DataObject::DataObject(DataPointer&& dataPointer) : data(std::move(dataPointer)) {}
@@ -38,7 +38,7 @@ DataObject& DataObject::operator=(const DataObject& other) {
     std::visit([&](auto& value) {
         using type = std::decay_t<decltype(value)>;
         if constexpr (
-            std::is_same_v<type, Null*>
+            std::is_same_v<type, Null>
             || !std::is_pointer_v<type>
         ) {
             data = value;
@@ -61,13 +61,13 @@ DataObject& DataObject::operator=(const DataObject& other) {
 }
 DataObject& DataObject::operator=(DataObject&& other) noexcept {
     this->data = other.data;
-    other.data = DataObject::null_t;
+    other.data = nullptr;
     return *this;
 }
 
 DataObject::DataObject(const DataObject& src) : data(src.data) {}
 DataObject::DataObject(DataObject&& src) noexcept : data(std::move(src.data)) {
-    src.data = null_t;
+    src.data = nullptr;
 }
 
 std::string DataObject::serialize(bool nested, DataObject* renderData) const {
@@ -75,7 +75,7 @@ std::string DataObject::serialize(bool nested, DataObject* renderData) const {
 
     std::visit([&](const auto& value) -> void {
         using T = std::decay_t<decltype(value)>;
-        if constexpr (std::is_same_v<NullPtr, T>) {
+        if constexpr (std::is_same_v<Null, T>) {
             acc << "null";
         } else if constexpr (std::is_same_v<StringPtr, T>) {
             if (!nested) {
@@ -148,7 +148,6 @@ bool DataObject::operator==(const DataObject& other) const {
                 std::is_same_v<t1, StringPtr>
                 || std::is_same_v<t1, ObjectPtr>
                 || std::is_same_v<t1, ArrayPtr>
-                || std::is_same_v<t1, NullPtr>
             ) {
                 return (*a) == (*b);
             } else {
@@ -172,7 +171,7 @@ bool DataObject::operator<=(const DataObject& other) const {
                 return (*a) <= (*b);
             } else if constexpr (
                 std::is_same_v<t1, ObjectPtr>
-                || std::is_same_v<t1, NullPtr>
+                || std::is_same_v<t1, Null>
             ) {
                 throw std::runtime_error("operator<= on objects and null is undefined");
             } else {
@@ -196,7 +195,7 @@ bool DataObject::operator>=(const DataObject& other) const {
                 return (*a) >= (*b);
             } else if constexpr (
                 std::is_same_v<t1, ObjectPtr>
-                || std::is_same_v<t1, NullPtr>
+                || std::is_same_v<t1, Null>
             ) {
                 throw std::runtime_error("operator>= on objects and null is undefined");
             } else {
@@ -219,7 +218,7 @@ bool DataObject::operator<(const DataObject& other) const {
                 return (*a) > (*b);
             } else if constexpr (
                 std::is_same_v<t1, ObjectPtr>
-                || std::is_same_v<t1, NullPtr>
+                || std::is_same_v<t1, Null>
             ) {
                 throw std::runtime_error("operator< on objects and null is undefined");
             } else {
@@ -242,7 +241,7 @@ bool DataObject::operator>(const DataObject& other) const {
                 return (*a) > (*b);
             } else if constexpr (
                 std::is_same_v<t1, ObjectPtr>
-                || std::is_same_v<t1, NullPtr>
+                || std::is_same_v<t1, Null>
             ) {
                 throw std::runtime_error("operator> on objects and null is undefined");
             } else {
@@ -263,7 +262,6 @@ bool DataObject::operator!=(const DataObject& other) const {
                 std::is_same_v<t1, StringPtr>
                 || std::is_same_v<t1, ObjectPtr>
                 || std::is_same_v<t1, ArrayPtr>
-                || std::is_same_v<t1, NullPtr>
             ) {
                 return (*a) != (*b);
             } else {

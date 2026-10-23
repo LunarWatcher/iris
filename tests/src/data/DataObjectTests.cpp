@@ -100,7 +100,7 @@ TEST_CASE("DataObject equality") {
         REQUIRE(iris::DataObject("3.0") == iris::DataObject("3.0"));
     }
     SECTION("Null") {
-        REQUIRE(iris::DataObject() == iris::DataObject(iris::DataObject::null_t));
+        REQUIRE(iris::DataObject() == iris::DataObject(nullptr));
         REQUIRE(iris::DataObject() != iris::DataObject("3"));
         REQUIRE(iris::DataObject() != iris::DataObject(3));
         REQUIRE(iris::DataObject() != iris::DataObject(3.0));
@@ -212,6 +212,14 @@ TEST_CASE("DataObject serialization") {
         REQUIRE(obj.serialize() == R"({"key":a.str})");
         REQUIRE(obj.serialize(false, &renderData) == R"({"key":"trans rights are human rights"})");
         
+    }
+
+    SECTION("Should serialize null correctly") {
+        iris::DataObject obj = iris::Object {
+            {"key", nullptr}
+        };
+
+        REQUIRE(obj.serialize() == R"({"key":null})");
     }
 }
 
