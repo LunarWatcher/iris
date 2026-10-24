@@ -151,8 +151,9 @@ public:
     DataObject& at(const std::string& key) const;
 
     bool contains(const std::string& key) const;
-
     bool contains(const DataPointer& ptr, size_t offset = 0) const;
+
+    void push_back(const DataObject& obj);
 
     size_t size() const;
 

@@ -4,7 +4,7 @@
 namespace {
 
 TEST_CASE("Set statements", "[set]") {
-    SECTION("Basic set statements") {
+    SECTION("Basic statements") {
         SECTION("String") {
             std::string result = iris::render(
                 R"({% set x = "value" %}{{ x }})",
@@ -32,6 +32,14 @@ TEST_CASE("Set statements", "[set]") {
             INFO("{{ null }} should be an empty string");
             REQUIRE(result == "");
         }
+    }
+
+    SECTION("Object statements") {
+        std::string result = iris::render(
+            R"({% set x = { "k": "value" } %}{{ x }}<>{{ x.k }})",
+            iris::Object {}
+        );
+        REQUIRE(result == R"({"k":"value"}<>value)");
     }
 }
 

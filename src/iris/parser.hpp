@@ -146,6 +146,13 @@ class Parser {
 
     std::stack<std::string> objectKeys;
     std::stack<std::variant<std::shared_ptr<ObjectNode>, std::shared_ptr<ArrayNode>>> objectStack;
+    size_t objectsInObjectStack = 0;
+
+    void pushExpressionNode(
+        Arguments& args,
+        std::shared_ptr<ExpressionNode>&& node,
+        bool valueCanBeKey = false
+    );
 
     std::shared_ptr<ExpressionNode> parse_expression(Template& tmpl) {
         Arguments arguments;
@@ -163,22 +170,18 @@ class Parser {
             // Literals
             switch (tok.kind) {
             case Token::Kind::String: {
-                if (objectStack.empty()) {
-                    literal_start = tok.text;
+                literal_start = tok.text;
 
-                    auto body = getDataText();
+                auto body = getDataText();
 
-                    if (!body.starts_with('"') || !body.ends_with('"')) {
-                        throw_parser_error("Illegal string");
-                    }
-                    
-                    DataObject root = std::string(body.size() > 2 ? body.substr(1, body.size() - 2) : "");
-                    arguments.emplace_back(
-                        std::make_shared<LiteralNode>(std::move(root), body.data() - tmpl.content.c_str())
-                    );
-                } else {
-                    throw std::runtime_error("Unhandled");
+                if (!body.starts_with('"') || !body.ends_with('"')) {
+                    throw_parser_error("Illegal string");
                 }
+
+                DataObject root = std::string(body.size() > 2 ? body.substr(1, body.size() - 2) : "");
+                auto node = std::make_shared<LiteralNode>(std::move(root), body.data() - tmpl.content.c_str());
+
+                pushExpressionNode(arguments, node, true);
             } break;
             case Token::Kind::Number: {
                 if (objectStack.empty()) {
@@ -207,6 +210,7 @@ class Parser {
                 objectStack.push(
                     std::make_shared<ObjectNode>(literal_start.data() - tmpl.content.c_str())
                 );
+                ++objectsInObjectStack;
             } break;
             case Token::Kind::RightBracket: {
                 if (objectStack.empty()) {
@@ -218,28 +222,13 @@ class Parser {
 
                 if (!std::holds_alternative<std::shared_ptr<ArrayNode>>(node)) {
                     throw_parser_error(
-                        "Found ] when } was expected"
+                        "Found } when ] was expected"
                     );
                 }
 
                 auto arrNode = std::get<std::shared_ptr<ArrayNode>>(node);
                 
-                if (objectStack.empty()) {
-                    arguments.emplace_back(std::get<std::shared_ptr<ArrayNode>>(node));
-                } else {
-                    auto& parentNode = objectStack.top();
-                    if (std::holds_alternative<std::shared_ptr<ArrayNode>>(parentNode)) {
-                        std::get<std::shared_ptr<ArrayNode>>(parentNode)->children.push_back(
-                            std::move(arrNode)
-                        );
-                    } else {
-                        auto k = objectKeys.top();
-                        objectKeys.pop();
-                        std::get<std::shared_ptr<ObjectNode>>(parentNode)->children.insert(
-                            {std::move(k), std::move(arrNode)}
-                        );
-                    }
-                }
+                pushExpressionNode(arguments, arrNode);
             } break;
             case Token::Kind::RightBrace: {
                 if (objectStack.empty()) {
@@ -249,6 +238,8 @@ class Parser {
                 auto node = objectStack.top();
                 objectStack.pop();
 
+                --objectsInObjectStack;
+
                 if (!std::holds_alternative<std::shared_ptr<ObjectNode>>(node)) {
                     throw_parser_error(
                         "Found ] when } was expected"
@@ -257,22 +248,7 @@ class Parser {
 
                 auto objNode = std::get<std::shared_ptr<ObjectNode>>(node);
                 
-                if (objectStack.empty()) {
-                    arguments.emplace_back(std::get<std::shared_ptr<ObjectNode>>(node));
-                } else {
-                    auto& parentNode = objectStack.top();
-                    if (std::holds_alternative<std::shared_ptr<ArrayNode>>(parentNode)) {
-                        std::get<std::shared_ptr<ArrayNode>>(parentNode)->children.push_back(
-                            std::move(objNode)
-                        );
-                    } else {
-                        auto k = objectKeys.top();
-                        objectKeys.pop();
-                        std::get<std::shared_ptr<ObjectNode>>(parentNode)->children.insert(
-                            {k, std::move(objNode)}
-                        );
-                    }
-                }
+                pushExpressionNode(arguments, objNode);
             } break;
             case Token::Kind::Id: {
                 get_peek_token();

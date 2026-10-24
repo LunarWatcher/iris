@@ -525,4 +525,17 @@ void DataObject::clear() const {
     }, data);
 }
 
+void DataObject::push_back(const DataObject& obj) {
+    std::visit([&](const auto& value) {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (
+            std::is_same_v<T, ArrayPtr>
+        ) {
+            value->push_back(obj);
+        } else {
+            throw std::runtime_error("Cannot push to non-array");
+        }
+    }, data);
+}
+
 }
