@@ -42,10 +42,12 @@ DataObject& DataObject::operator=(const DataObject& other) {
         } else if constexpr (std::is_same_v<type, StringPtr>) {
             data = std::make_shared<String>(value->begin(), value->end());
         } else if constexpr (std::is_same_v<type, ArrayPtr>) {
+            // TODO: This implementation is incorrect
             auto vec = std::make_shared<Array>();
             *vec = *value;
             data = vec;
         } else if constexpr (std::is_same_v<type, ObjectPtr>) {
+            // TODO: This implementation is incorrect
             auto map = std::make_shared<Object>();
             *map = *value;
             data = map;
@@ -67,7 +69,7 @@ DataObject::DataObject(DataObject&& src) noexcept : data(std::move(src.data)) {
     src.data = nullptr;
 }
 
-std::string DataObject::serialize(bool nested, DataObject* renderData) const {
+std::string DataObject::serialize(bool nested) const {
     std::stringstream acc;
 
     std::visit([&](const auto& value) -> void {
@@ -88,7 +90,7 @@ std::string DataObject::serialize(bool nested, DataObject* renderData) const {
                     acc << ',';
                 }
                 hasFirst = true;
-                acc << std::quoted(k, '"', '\\') << ":" << v.serialize(true, renderData);
+                acc << std::quoted(k, '"', '\\') << ":" << v.serialize(true);
             }
             acc << '}';
         } else if constexpr (std::is_same_v<ArrayPtr, T>) {
@@ -97,7 +99,7 @@ std::string DataObject::serialize(bool nested, DataObject* renderData) const {
                 if (i != 0) {
                     acc << ',';
                 }
-                acc << value->at(i).serialize(true, renderData);
+                acc << value->at(i).serialize(true);
             }
             acc << ']';
         } else {
@@ -486,12 +488,17 @@ size_t DataObject::size() const {
         ) {
             return value->size();
         } else {
-            throw std::runtime_error("Critical: called exists on a non-string/array/object");
+            throw std::runtime_error(
+                std::format(
+                    "Critical: called exists on a non-string/array/object (actual type: {})",
+                    type()
+                )
+            );
         }
     }, data);
 }
 
-void DataObject::clear() const {
+void DataObject::clear() {
     std::visit([&](const auto& value) {
         using T = std::decay_t<decltype(value)>;
         if constexpr (
@@ -501,7 +508,7 @@ void DataObject::clear() const {
         ) {
             value->clear();
         } else {
-            throw std::runtime_error("Critical: called exists on a non-string/array/object");
+            (*this) = DataObject(nullptr);
         }
     }, data);
 }
@@ -515,6 +522,27 @@ void DataObject::push_back(const DataObject& obj) {
             value->push_back(obj);
         } else {
             throw std::runtime_error("Cannot push to non-array");
+        }
+    }, data);
+}
+
+std::string DataObject::type() const {
+    return std::visit([&](const auto& value) -> std::string {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, ArrayPtr>) {
+            return "Array";
+        } else if constexpr (std::is_same_v<T, ObjectPtr>) {
+            return "Object";
+        } else if constexpr (std::is_same_v<T, StringPtr>) {
+            return "String";
+        } else if constexpr (std::is_same_v<T, Null>) {
+            return "null";
+        } else if constexpr (std::is_same_v<T, Int>) {
+            return "Int";
+        } else if constexpr (std::is_same_v<T, Float>) {
+            return "Float";
+        } else if constexpr (std::is_same_v<T, Boolean>) {
+            return "Boolean";
         }
     }, data);
 }

@@ -57,7 +57,7 @@ private:
     std::ostream* output_stream = nullptr;
 
     DataObject additional_data = Object {};
-    DataObject* current_loop_data = nullptr;
+    std::shared_ptr<DataObject> currentLoopData = nullptr;
 
     std::vector<std::shared_ptr<DataObject>> data_tmp_stack;
     std::stack<const DataObject*> data_eval_stack;

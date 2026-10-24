@@ -57,7 +57,10 @@ void Renderer::render_to(std::ostream &os, const Template &tmpl,
   data_input = &data;
   if (loop_data != nullptr) {
     additional_data = *loop_data;
-    current_loop_data = &additional_data["loop"];
+    // TODO: do we actually want this?
+    currentLoopData = std::make_shared<DataObject>(
+        additional_data["loop"]
+    );
   }
 
   template_stack.emplace_back(current_template);
@@ -521,37 +524,45 @@ void Renderer::visit(const ForArrayStatementNode &node) {
         throw_renderer_error("object must be an array", node);
     }
 
-    if (!current_loop_data->empty()) {
-        auto tmp = *current_loop_data; // Because of clang-3
-        (*current_loop_data)["parent"] = std::move(tmp);
+    if (currentLoopData != nullptr) {
+        DataObject old(*currentLoopData);
+        currentLoopData = std::make_shared<DataObject>(iris::Object{});
+        (*currentLoopData)["parent"] = std::move(old);
+    } else {
+        currentLoopData = std::make_shared<DataObject>(iris::Object{});
     }
 
     size_t index = 0;
-    (*current_loop_data)["is_first"] = true;
-    (*current_loop_data)["is_last"] = (result->size() <= 1);
+    (*currentLoopData)["is_first"] = true;
+    (*currentLoopData)["is_last"] = (result->size() <= 1);
     auto &array = result->get<Array>();
     for (auto &it : array) {
         additional_data[static_cast<std::string>(node.value)] = it;
 
-        (*current_loop_data)["index"] = index;
-        (*current_loop_data)["index1"] = index + 1;
+        (*currentLoopData)["index"] = index;
+        (*currentLoopData)["index1"] = index + 1;
         if (index == 1) {
-            (*current_loop_data)["is_first"] = false;
+            (*currentLoopData)["is_first"] = false;
         }
         if (index == result->size() - 1) {
-            (*current_loop_data)["is_last"] = true;
+            (*currentLoopData)["is_last"] = true;
         }
+
+        // TODO: this is less efficient but is a forced hack, since the pointers to objects currently aren't stable with
+        // iteration.
+        additional_data["loop"] = *currentLoopData;
 
         node.body.accept(*this);
         ++index;
     }
 
-    additional_data[static_cast<std::string>(node.value)].clear();
-    if (!(*current_loop_data)["parent"].empty()) {
-        const auto tmp = (*current_loop_data)["parent"];
-        *current_loop_data = tmp;
+    additional_data[node.value].clear();
+    if (currentLoopData->contains("parent")) {
+        const auto tmp = (*currentLoopData)["parent"];
+        *currentLoopData = tmp;
     } else {
-        current_loop_data = &additional_data["loop"];
+        currentLoopData = nullptr;
+        additional_data["loop"] = nullptr;
     }
 }
 void Renderer::visit(const ForObjectStatementNode &node) {
@@ -560,26 +571,34 @@ void Renderer::visit(const ForObjectStatementNode &node) {
         throw_renderer_error("object must be an object", node);
     }
 
-    if (!current_loop_data->empty()) {
-        (*current_loop_data)["parent"] = std::move(*current_loop_data);
+    if (currentLoopData != nullptr) {
+        DataObject old(*currentLoopData);
+        currentLoopData = std::make_shared<DataObject>(iris::Object{});
+        (*currentLoopData)["parent"] = std::move(old);
+    } else {
+        currentLoopData = std::make_shared<DataObject>(iris::Object{});
     }
 
     size_t index = 0;
-    (*current_loop_data)["is_first"] = true;
-    (*current_loop_data)["is_last"] = (result->size() <= 1);
+    (*currentLoopData)["is_first"] = true;
+    (*currentLoopData)["is_last"] = (result->size() <= 1);
     auto &obj = result->get<Object>();
     for (const auto &[k, v] : obj) {
         additional_data[static_cast<std::string>(node.key)] = k;
         additional_data[static_cast<std::string>(node.value)] = v;
 
-        (*current_loop_data)["index"] = index;
-        (*current_loop_data)["index1"] = index + 1;
+        (*currentLoopData)["index"] = index;
+        (*currentLoopData)["index1"] = index + 1;
         if (index == 1) {
-            (*current_loop_data)["is_first"] = false;
+            (*currentLoopData)["is_first"] = false;
         }
         if (index == result->size() - 1) {
-            (*current_loop_data)["is_last"] = true;
+            (*currentLoopData)["is_last"] = true;
         }
+
+        // TODO: this is less efficient but is a forced hack, since the pointers to objects currently aren't stable with
+        // iteration.
+        additional_data["loop"] = *currentLoopData;
 
         node.body.accept(*this);
         ++index;
@@ -587,10 +606,12 @@ void Renderer::visit(const ForObjectStatementNode &node) {
 
     additional_data[static_cast<std::string>(node.key)].clear();
     additional_data[static_cast<std::string>(node.value)].clear();
-    if (!(*current_loop_data)["parent"].empty()) {
-        *current_loop_data = std::move((*current_loop_data)["parent"]);
+    if (currentLoopData->contains("parent")) {
+        const auto tmp = (*currentLoopData)["parent"];
+        *currentLoopData = tmp;
     } else {
-        current_loop_data = &additional_data["loop"];
+        currentLoopData = nullptr;
+        additional_data["loop"] = nullptr;
     }
 }
 void Renderer::visit(const IfStatementNode &node) {

@@ -235,4 +235,25 @@ TEST_CASE("DataObject serialization") {
     }
 }
 
+TEST_CASE("DataObject assignment") {
+    SECTION("From init") {
+        iris::DataObject obj = iris::Object {};
+        REQUIRE(obj.is_object());
+        obj["it"] = iris::DataObject(iris::Object());
+        REQUIRE(obj["it"].is_object());
+    }
+    SECTION("From self (move)") {
+        iris::DataObject obj = iris::Object {};
+        auto copy = obj;
+        obj["it"] = std::move(copy);
+        REQUIRE(obj["it"].is_object());
+    }
+    SECTION("From self (copy/elision)") {
+        iris::DataObject obj = iris::Object {};
+        auto copy = obj;
+        obj["it"] = copy;
+        REQUIRE(obj["it"].is_object());
+    }
+}
+
 }

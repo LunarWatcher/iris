@@ -89,8 +89,8 @@ public:
     // resolution for this constructor fails
     // DataObject(std::initializer_list<Object::value_type> list) : DataObject(Object(list)) {}
 
-    explicit DataObject(const DataObject& src);
-    explicit DataObject(DataObject&& src) noexcept;
+    DataObject(const DataObject& src);
+    DataObject(DataObject&& src) noexcept;
 
     template <typename T>
     const T& get() const {
@@ -126,6 +126,8 @@ public:
     bool is_object() const { return std::holds_alternative<ObjectPtr>(data); }
     bool is_number() const { return is_int() || is_float(); }
 
+    std::string type() const;
+
     Int coerceInt() const;
     Float coerceFloat() const;
 
@@ -149,7 +151,7 @@ public:
 
     size_t size() const;
 
-    void clear() const;
+    void clear();
 
     DataObject& operator[](const DataPointer& ptr);
     DataObject& operator[](const std::string& key);
@@ -158,10 +160,10 @@ public:
     /**
      * Contains JSON serialization.
      */
-    std::string serialize(bool nested = false, DataObject* renderData = nullptr) const;
-    operator std::string() const {
-        return serialize();
-    }
+    std::string serialize(bool nested = false) const;
+    // operator std::string() const {
+    //     return serialize();
+    // }
 };
 
 inline std::ostream& operator<<(std::ostream& out, const DataObject& obj) {
