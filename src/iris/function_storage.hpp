@@ -115,29 +115,11 @@ private:
     };
 
 public:
-    void add_builtin(std::string_view name, int num_args, Operation op) {
-        function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData {op});
-    }
+    void add_builtin(std::string_view name, int num_args, Operation op);
 
-    void add_callback(std::string_view name, int num_args, const CallbackFunction& callback) {
-        function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData {Operation::Callback, callback});
-    }
+    void add_callback(std::string_view name, int num_args, const CallbackFunction& callback);
 
-    FunctionData find_function(std::string_view name, int num_args) const {
-        auto it = function_storage.find(std::make_pair(static_cast<std::string>(name), num_args));
-        if (it != function_storage.end()) {
-            return it->second;
-
-            // Find variadic function
-        } else if (num_args > 0) {
-            it = function_storage.find(std::make_pair(static_cast<std::string>(name), VARIADIC));
-            if (it != function_storage.end()) {
-                return it->second;
-            }
-        }
-
-        return FunctionData {Operation::None};
-    }
+    FunctionData find_function(std::string_view name, int num_args) const;
 };
 
 } // namespace iris

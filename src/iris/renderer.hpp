@@ -1,29 +1,20 @@
 #pragma once
 
-#include <algorithm>
 #include <array>
-#include <cctype>
-#include <cmath>
 #include <cstddef>
 #include <iostream>
 #include <memory>
-#include <numeric>
 #include <ostream>
-#include <sstream>
 #include <stack>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "config.hpp"
-#include "exceptions.hpp"
 #include "function_storage.hpp"
 #include "iris/data/DataObject.hpp"
 #include "iris/data/DataPointer.hpp"
 #include "node.hpp"
 #include "template.hpp"
-#include "throw.hpp"
-#include "utils.hpp"
 
 namespace iris {
 
@@ -50,6 +41,7 @@ inline std::string htmlescape(const std::string& data) {
  * \brief Class for rendering a Template with data.
  */
 class Renderer : public NodeVisitor {
+private:
     using Op = FunctionStorage::Operation;
 
     const RenderConfig config;
@@ -73,75 +65,16 @@ class Renderer : public NodeVisitor {
 
     bool break_rendering {false};
 
-    static bool truthy(const DataObject* data) {
-        if (data->is_bool()) {
-            return data->get<bool>();
-        } else if (data->is_int()) {
-            return (data->get<Int>() != 0);
-        } else if (data->is_uint()) {
-            return (data->get<UInt>() != 0);
-        } else if (data->is_null()) {
-            return false;
-        }
-        return !data->empty();
-    }
+    static bool truthy(const DataObject *data);
 
-    void print_data(const std::shared_ptr<DataObject>& value) {
-        if (value->is_string()) {
-            if (config.html_autoescape) {
-                *output_stream << htmlescape(value->get<String>());
-            } else {
-                *output_stream << value->get<String>();
-            }
-        } else if (value->is_uint()) {
-            *output_stream << value->get<UInt>();
-        } else if (value->is_int()) {
-            *output_stream << value->get<Int>();
-        } else if (value->is_null()) {
-        } else {
-            *output_stream << value->serialize();
-        }
-    }
+    void print_data(const std::shared_ptr<DataObject> &value);
 
-    const std::shared_ptr<DataObject> eval_expression_list(const ExpressionListNode& expression_list) {
-        if (!expression_list.root) {
-            throw_renderer_error("empty expression", expression_list);
-        }
+    const std::shared_ptr<DataObject>
+    eval_expression_list(const ExpressionListNode &expression_list);
 
-        expression_list.root->accept(*this);
+    void throw_renderer_error(const std::string &message, const AstNode &node);
 
-        if (data_eval_stack.empty()) {
-            throw_renderer_error("empty expression", expression_list);
-        } else if (data_eval_stack.size() != 1) {
-            throw_renderer_error("malformed expression", expression_list);
-        }
-
-        const auto result = data_eval_stack.top();
-        data_eval_stack.pop();
-
-        if (result == nullptr) {
-            if (not_found_stack.empty()) {
-                throw_renderer_error("expression could not be evaluated", expression_list);
-            }
-
-            const auto node = not_found_stack.top();
-            not_found_stack.pop();
-
-            throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
-        }
-        return std::make_shared<DataObject>(*result);
-    }
-
-    void throw_renderer_error(const std::string& message, const AstNode& node) {
-        const SourceLocation loc = get_source_location(current_template->content, node.pos);
-        IRIS_THROW(RenderError(message, loc));
-    }
-
-    void make_result(const DataObject&& result) {
-        auto result_ptr = std::make_shared<DataObject>(result);
-        data_tmp_stack.push_back(result_ptr);
-        data_eval_stack.push(result_ptr.get());
-    }
+    void make_result(const DataObject &&result);
 
     template <size_t N, size_t N_start = 0, bool throw_not_found = true>
     std::array<const DataObject*, N> get_arguments(const FunctionNode& node) {
@@ -202,497 +135,54 @@ class Renderer : public NodeVisitor {
         return result;
     }
 
-    void visit(const BlockNode& node) override {
-        for (const auto& n : node.nodes) {
-            n->accept(*this);
+    void visit(const BlockNode& node) override;
 
-            if (break_rendering) {
-                break;
-            }
-        }
-    }
-
-    void visit(const TextNode& node) override {
-        output_stream->write(current_template->content.c_str() + node.pos, node.length);
-    }
+    void visit(const TextNode& node) override;
 
     void visit(const ExpressionNode&) override {}
 
     void visit(const ArrayNode& node) override;
     void visit(const ObjectNode& node) override;
 
-    void visit(const LiteralNode& node) override {
-        data_eval_stack.push(&node.value);
-    }
+    void visit(const LiteralNode& node) override;
 
-    void visit(const DataNode& node) override {
-        if (additional_data.contains(node.ptr)) {
-            data_eval_stack.push(&(additional_data[node.ptr]));
-        } else if (data_input->contains(node.ptr)) {
-            data_eval_stack.push(&(*data_input).at(node.ptr));
-        } else {
-            // Try to evaluate as a no-argument callback
-            const auto function_data = function_storage.find_function(node.name, 0);
-            if (function_data.operation == FunctionStorage::Operation::Callback) {
-                Arguments empty_args {};
-                const auto value = std::make_shared<DataObject>(function_data.callback(empty_args));
-                data_tmp_stack.push_back(value);
-                data_eval_stack.push(value.get());
-            } else {
-                data_eval_stack.push(nullptr);
-                not_found_stack.emplace(&node);
-            }
-        }
-    }
+    void visit(const DataNode& node) override;
 
-    void visit(const FunctionNode& node) override {
-        switch (node.operation) {
-        case Op::Not: {
-            const auto args = get_arguments<1>(node);
-            make_result(!truthy(args[0]));
-        } break;
-        case Op::And: {
-            make_result(truthy(get_arguments<1, 0>(node)[0]) && truthy(get_arguments<1, 1>(node)[0]));
-        } break;
-        case Op::Or: {
-            make_result(truthy(get_arguments<1, 0>(node)[0]) || truthy(get_arguments<1, 1>(node)[0]));
-        } break;
-        case Op::In: {
-            const auto args = get_arguments<2>(node);
-            if (args[1]->is_array()) {
-                auto& arr = args[1]->get<Array>();
-                make_result(std::find(arr.begin(), arr.end(), *args[0]) != arr.end());
-            } else {
-                // TODO: support objects
-                throw_renderer_error(
-                    "The in operator is only defined for arrays. For objects, use exists or existsIn",
-                    node
-                );
-            }
-        } break;
-        case Op::Equal: {
-            const auto args = get_arguments<2>(node);
-            make_result(*args[0] == *args[1]);
-        } break;
-        case Op::NotEqual: {
-            const auto args = get_arguments<2>(node);
-            make_result(*args[0] != *args[1]);
-        } break;
-        case Op::Greater: {
-            const auto args = get_arguments<2>(node);
-            make_result(*args[0] > *args[1]);
-        } break;
-        case Op::GreaterEqual: {
-            const auto args = get_arguments<2>(node);
-            make_result(*args[0] >= *args[1]);
-        } break;
-        case Op::Less: {
-            const auto args = get_arguments<2>(node);
-            make_result(*args[0] < *args[1]);
-        } break;
-        case Op::LessEqual: {
-            const auto args = get_arguments<2>(node);
-            make_result(*args[0] <= *args[1]);
-        } break;
-        case Op::Add: {
-            const auto args = get_arguments<2>(node);
-            if (args[0]->is_string() && args[1]->is_string()) {
-                make_result(args[0]->get<String>() + args[1]->get<String>());
-            } else if (args[0]->is_any_int() && args[1]->is_any_int()) {
-                make_result(args[0]->coerceInt() + args[1]->coerceInt());
-            } else {
-                make_result(args[0]->coerceFloat() + args[1]->coerceFloat());
-            }
-        } break;
-        case Op::Subtract: {
-            const auto args = get_arguments<2>(node);
-            if (args[0]->is_any_int() && args[1]->is_any_int()) {
-                make_result(args[0]->coerceInt() - args[1]->coerceInt());
-            } else {
-                make_result(args[0]->coerceFloat() - args[1]->coerceFloat());
-            }
-        } break;
-        case Op::Multiplication: {
-            const auto args = get_arguments<2>(node);
-            if (args[0]->is_any_int() && args[1]->is_any_int()) {
-                make_result(args[0]->coerceInt() * args[1]->coerceInt());
-            } else {
-                make_result(args[0]->coerceFloat() * args[1]->coerceFloat());
-            }
-        } break;
-        case Op::Division: {
-            const auto args = get_arguments<2>(node);
-            if (args[1]->coerceFloat() == 0) {
-                throw_renderer_error("division by zero", node);
-            }
-            make_result(args[0]->coerceFloat() / args[1]->coerceFloat());
-        } break;
-        case Op::Power: {
-            const auto args = get_arguments<2>(node);
-            if (args[0]->is_any_int() && args[1]->get<Int>() >= 0) {
-                const auto result = (Int) std::pow(args[0]->coerceInt(), args[1]->get<Int>());
-                make_result(result);
-            } else {
-                const auto result = std::pow(args[0]->coerceFloat(), args[1]->coerceFloat());
-                make_result(result);
-            }
-        } break;
-        case Op::Modulo: {
-            const auto args = get_arguments<2>(node);
-            make_result(args[0]->coerceInt() % args[1]->coerceInt());
-        } break;
-        case Op::AtId: {
-            const auto container = get_arguments<1, 0, false>(node)[0];
-            node.arguments[1]->accept(*this);
-            if (not_found_stack.empty()) {
-                throw_renderer_error("could not find element with given name", node);
-            }
-            const auto id_node = not_found_stack.top();
-            not_found_stack.pop();
-            data_eval_stack.pop();
-            data_eval_stack.push(&container->at(id_node->name));
-        } break;
-        case Op::At: {
-            const auto args = get_arguments<2>(node);
-            if (args[0]->is_object()) {
-                data_eval_stack.push(&args[0]->at(args[1]->get<String>()));
-            } else {
-                data_eval_stack.push(&args[0]->at(args[1]->get<Int>()));
-            }
-        } break;
-        case Op::Capitalize: {
-            auto result = get_arguments<1>(node)[0]->get<String>();
-            result[0] = static_cast<char>(::toupper(result[0]));
-            std::transform(result.begin() + 1, result.end(), result.begin() + 1, [](char c) { return static_cast<char>(::tolower(c)); });
-            make_result(std::move(result));
-        } break;
-        case Op::Default: {
-            const auto test_arg = get_arguments<1, 0, false>(node)[0];
-            data_eval_stack.push((test_arg != nullptr) ? test_arg : get_arguments<1, 1>(node)[0]);
-        } break;
-        case Op::DivisibleBy: {
-            const auto args = get_arguments<2>(node);
-            const auto divisor = args[1]->coerceInt();
-            make_result((divisor != 0) && (args[0]->coerceInt() % divisor == 0));
-        } break;
-        case Op::Even: {
-            make_result(get_arguments<1>(node)[0]->coerceInt() % 2 == 0);
-        } break;
-        case Op::Exists: {
-            auto&& name = get_arguments<1>(node)[0]->get<String>();
-            make_result(data_input->contains(name));
-        } break;
-        case Op::ExistsInObject: {
-            const auto args = get_arguments<2>(node);
-            auto&& name = args[1]->get<String>();
-            make_result(args[0]->contains(name));
-        } break;
-        case Op::First: {
-            // ????
-            const auto result = &get_arguments<1>(node)[0]->at(0);
-            data_eval_stack.push(result);
-        } break;
-        case Op::Float: {
-            make_result(std::stod(get_arguments<1>(node)[0]->get<String>()));
-        } break;
-        case Op::Int: {
-            make_result(std::stoi(get_arguments<1>(node)[0]->get<String>()));
-        } break;
-        case Op::Last: {
-            const auto result = &get_arguments<1>(node)[0]->back();
-            data_eval_stack.push(result);
-        } break;
-        case Op::Length: {
-            const auto val = get_arguments<1>(node)[0];
-            if (val->is_string()) {
-                make_result(val->get<String>().length());
-            } else {
-                make_result(val->size());
-            }
-        } break;
-        case Op::Lower: {
-            auto result = get_arguments<1>(node)[0]->get<String>();
-            std::transform(result.begin(), result.end(), result.begin(), [](char c) { return static_cast<char>(::tolower(c)); });
-            make_result(std::move(result));
-        } break;
-        case Op::Max: {
-            const auto args = get_arguments<1>(node);
-            const auto& it = args[0]->get<Array>();
-            const auto result = std::max_element(it.begin(), it.end());
-            data_eval_stack.push(&(*result));
-        } break;
-        case Op::Min: {
-            const auto args = get_arguments<1>(node);
-            const auto& it = args[0]->get<Array>();
-            const auto result = std::min_element(it.begin(), it.end());
-            data_eval_stack.push(&(*result));
-        } break;
-        case Op::Odd: {
-            make_result(get_arguments<1>(node)[0]->coerceInt() % 2 != 0);
-        } break;
-        case Op::Range: {
-            std::vector<DataObject> result(get_arguments<1>(node)[0]->coerceInt());
-            std::iota(result.begin(), result.end(), 0);
-            make_result(std::move(result));
-        } break;
-        case Op::Replace: {
-            const auto args = get_arguments<3>(node);
-            auto result = args[0]->get<std::string>();
-            replace_substring(result, args[1]->get<std::string>(), args[2]->get<std::string>());
-            make_result(std::move(result));
-        } break;
-        case Op::Round: {
-            const auto args = get_arguments<2>(node);
-            const auto precision = args[1]->coerceInt();
-            const double result = std::round(args[0]->coerceFloat() * std::pow(10.0, precision)) / std::pow(10.0, precision);
-            if (precision == 0) {
-                make_result(static_cast<int>(result));
-            } else {
-                make_result(result);
-            }
-        } break;
-        case Op::Sort: {
-            auto result_ptr = std::make_shared<DataObject>(get_arguments<1>(node)[0]->get<Array>());
-            auto& resultArray = result_ptr->get<Array>();
-            std::sort(resultArray.begin(), resultArray.end());
-            data_tmp_stack.push_back(result_ptr);
-            data_eval_stack.push(result_ptr.get());
-        } break;
-        case Op::Upper: {
-            auto result = get_arguments<1>(node)[0]->get<String>();
-            std::transform(result.begin(), result.end(), result.begin(), [](char c) { return static_cast<char>(::toupper(c)); });
-            make_result(std::move(result));
-        } break;
-        case Op::IsBoolean: {
-            make_result(get_arguments<1>(node)[0]->is_bool());
-        } break;
-        case Op::IsNumber: {
-            make_result(get_arguments<1>(node)[0]->is_number());
-        } break;
-        case Op::IsInteger: {
-            make_result(get_arguments<1>(node)[0]->is_any_int());
-        } break;
-        case Op::IsFloat: {
-            make_result(get_arguments<1>(node)[0]->is_float());
-        } break;
-        case Op::IsObject: {
-            make_result(get_arguments<1>(node)[0]->is_object());
-        } break;
-        case Op::IsArray: {
-            make_result(get_arguments<1>(node)[0]->is_array());
-        } break;
-        case Op::IsString: {
-            make_result(get_arguments<1>(node)[0]->is_string());
-        } break;
-        case Op::Callback: {
-            auto args = get_argument_vector(node);
-            make_result(node.callback(args));
-        } break;
-        case Op::Super: {
-            const auto args = get_argument_vector(node);
-            const size_t old_level = current_level;
-            const size_t level_diff = (args.size() == 1) ? args[0]->get<Int>() : 1;
-            const size_t level = current_level + level_diff;
+    void visit(const FunctionNode& node) override;
 
-            if (block_statement_stack.empty()) {
-                throw_renderer_error("super() call is not within a block", node);
-            }
+    void visit(const ExpressionListNode& node) override;
 
-            if (level < 1 || level > template_stack.size() - 1) {
-                throw_renderer_error("level of super() call does not match parent templates (between 1 and " + std::to_string(template_stack.size() - 1) + ")", node);
-            }
+    void visit(const StatementNode&) override;
 
-            const auto current_block_statement = block_statement_stack.back();
-            const Template* new_template = template_stack.at(level);
-            const Template* old_template = current_template;
-            const auto block_it = new_template->block_storage.find(current_block_statement->name);
-            if (block_it != new_template->block_storage.end()) {
-                current_template = new_template;
-                current_level = level;
-                block_it->second->block.accept(*this);
-                current_level = old_level;
-                current_template = old_template;
-            } else {
-                throw_renderer_error("could not find block with name '" + current_block_statement->name + "'", node);
-            }
-            make_result(nullptr);
-        } break;
-        case Op::Join: {
-            const auto args = get_arguments<2>(node);
-            const auto separator = args[1]->get<String>();
-            std::ostringstream os;
-            std::string sep;
-            for (const auto& value : args[0]->get<Array>()) {
-                os << sep;
-                if (value.is_string()) {
-                    os << value.get<std::string>(); // otherwise the value is surrounded with ""
-                } else {
-                    os << value.serialize();
-                }
-                sep = separator;
-            }
-            make_result(os.str());
-        } break;
-        case Op::None:
-            break;
-        }
-    }
+    void visit(const ForStatementNode&) override;
 
-    void visit(const ExpressionListNode& node) override {
-        print_data(eval_expression_list(node));
-    }
+    void visit(const ForArrayStatementNode &node) override;
 
-    void visit(const StatementNode&) override {}
+    void visit(const ForObjectStatementNode &node) override;
 
-    void visit(const ForStatementNode&) override {}
+    void visit(const IfStatementNode &node) override;
 
-    void visit(const ForArrayStatementNode& node) override {
-        const auto result = eval_expression_list(node.condition);
-        if (!result->is_array()) {
-            throw_renderer_error("object must be an array", node);
-        }
+    void visit(const IncludeStatementNode &node) override;
 
-        if (!current_loop_data->empty()) {
-            auto tmp = *current_loop_data; // Because of clang-3
-            (*current_loop_data)["parent"] = std::move(tmp);
-        }
+    void visit(const ExtendsStatementNode &node) override;
 
-        size_t index = 0;
-        (*current_loop_data)["is_first"] = true;
-        (*current_loop_data)["is_last"] = (result->size() <= 1);
-        auto& array = result->get<Array>();
-        for (auto& it : array) {
-            additional_data[static_cast<std::string>(node.value)] = it;
+    void visit(const BlockStatementNode &node) override;
 
-            (*current_loop_data)["index"] = index;
-            (*current_loop_data)["index1"] = index + 1;
-            if (index == 1) {
-                (*current_loop_data)["is_first"] = false;
-            }
-            if (index == result->size() - 1) {
-                (*current_loop_data)["is_last"] = true;
-            }
-
-            node.body.accept(*this);
-            ++index;
-        }
-
-        additional_data[static_cast<std::string>(node.value)].clear();
-        if (!(*current_loop_data)["parent"].empty()) {
-            const auto tmp = (*current_loop_data)["parent"];
-            *current_loop_data = tmp;
-        } else {
-            current_loop_data = &additional_data["loop"];
-        }
-    }
-
-    void visit(const ForObjectStatementNode& node) override {
-        const auto result = eval_expression_list(node.condition);
-        if (!result->is_object()) {
-            throw_renderer_error("object must be an object", node);
-        }
-
-        if (!current_loop_data->empty()) {
-            (*current_loop_data)["parent"] = std::move(*current_loop_data);
-        }
-
-        size_t index = 0;
-        (*current_loop_data)["is_first"] = true;
-        (*current_loop_data)["is_last"] = (result->size() <= 1);
-        auto& obj = result->get<Object>();
-        for (const auto& [k, v] : obj) {
-            additional_data[static_cast<std::string>(node.key)] = k;
-            additional_data[static_cast<std::string>(node.value)] = v;
-
-            (*current_loop_data)["index"] = index;
-            (*current_loop_data)["index1"] = index + 1;
-            if (index == 1) {
-                (*current_loop_data)["is_first"] = false;
-            }
-            if (index == result->size() - 1) {
-                (*current_loop_data)["is_last"] = true;
-            }
-
-            node.body.accept(*this);
-            ++index;
-        }
-
-        additional_data[static_cast<std::string>(node.key)].clear();
-        additional_data[static_cast<std::string>(node.value)].clear();
-        if (!(*current_loop_data)["parent"].empty()) {
-            *current_loop_data = std::move((*current_loop_data)["parent"]);
-        } else {
-            current_loop_data = &additional_data["loop"];
-        }
-    }
-
-    void visit(const IfStatementNode& node) override {
-        const auto result = eval_expression_list(node.condition);
-        if (truthy(result.get())) {
-            node.true_statement.accept(*this);
-        } else if (node.has_false_statement) {
-            node.false_statement.accept(*this);
-        }
-    }
-
-    void visit(const IncludeStatementNode& node) override {
-        auto sub_renderer = Renderer(config, template_storage, function_storage);
-        const auto included_template_it = template_storage.find(node.file);
-        if (included_template_it != template_storage.end()) {
-            sub_renderer.render_to(*output_stream, included_template_it->second, *data_input, &additional_data);
-        } else if (config.throw_at_missing_includes) {
-            throw_renderer_error("include '" + node.file + "' not found", node);
-        }
-    }
-
-    void visit(const ExtendsStatementNode& node) override {
-        const auto included_template_it = template_storage.find(node.file);
-        if (included_template_it != template_storage.end()) {
-            const Template* parent_template = &included_template_it->second;
-            render_to(*output_stream, *parent_template, *data_input, &additional_data);
-            break_rendering = true;
-        } else if (config.throw_at_missing_includes) {
-            throw_renderer_error("extends '" + node.file + "' not found", node);
-        }
-    }
-
-    void visit(const BlockStatementNode& node) override {
-        const size_t old_level = current_level;
-        current_level = 0;
-        current_template = template_stack.front();
-        const auto block_it = current_template->block_storage.find(node.name);
-        if (block_it != current_template->block_storage.end()) {
-            block_statement_stack.emplace_back(&node);
-            block_it->second->block.accept(*this);
-            block_statement_stack.pop_back();
-        }
-        current_level = old_level;
-        current_template = template_stack.back();
-    }
-
-    void visit(const SetStatementNode& node) override {
-        DataPointer ptr(node.key);
-        additional_data[ptr] = *eval_expression_list(node.expression);
-    }
+    void visit(const SetStatementNode &node) override;
 
 public:
-    explicit Renderer(const RenderConfig& config, const TemplateStorage& template_storage, const FunctionStorage& function_storage)
-        : config(config), template_storage(template_storage), function_storage(function_storage) {}
+    explicit Renderer(
+        const RenderConfig &config,
+        const TemplateStorage &template_storage,
+        const FunctionStorage &function_storage
+    );
 
-    void render_to(std::ostream& os, const Template& tmpl, const DataObject& data, DataObject* loop_data = nullptr) {
-        output_stream = &os;
-        current_template = &tmpl;
-        data_input = &data;
-        if (loop_data != nullptr) {
-            additional_data = *loop_data;
-            current_loop_data = &additional_data["loop"];
-        }
-
-        template_stack.emplace_back(current_template);
-        current_template->root.accept(*this);
-
-        data_tmp_stack.clear();
-    }
+    void render_to(
+        std::ostream &os,
+        const Template &tmpl,
+        const DataObject &data,
+        DataObject *loop_data = nullptr
+    );
 };
 
 } // namespace iris

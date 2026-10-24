@@ -4,6 +4,8 @@ add_library(iris
 
     iris/config.cpp
     iris/environment.cpp
+    iris/function_storage.cpp
+    iris/lexer.cpp
     iris/renderer.cpp
     iris/parser.cpp
 )
