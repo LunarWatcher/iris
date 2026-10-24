@@ -19,6 +19,8 @@ class TextNode;
 class ExpressionNode;
 class LiteralNode;
 class DataNode;
+class ArrayNode;
+class ObjectNode;
 class FunctionNode;
 class ExpressionListNode;
 class StatementNode;
@@ -40,6 +42,8 @@ public:
     virtual void visit(const ExpressionNode& node) = 0;
     virtual void visit(const LiteralNode& node) = 0;
     virtual void visit(const DataNode& node) = 0;
+    virtual void visit(const ObjectNode& node) = 0;
+    virtual void visit(const ArrayNode& node) = 0;
     virtual void visit(const FunctionNode& node) = 0;
     virtual void visit(const ExpressionListNode& node) = 0;
     virtual void visit(const StatementNode& node) = 0;
@@ -91,6 +95,25 @@ public:
 class ExpressionNode : public AstNode {
 public:
     explicit ExpressionNode(size_t pos): AstNode(pos) {}
+    virtual ~ExpressionNode() = default;
+
+    virtual void accept(NodeVisitor& v) const override = 0;
+};
+
+class ObjectNode : public ExpressionNode {
+public:
+    std::unordered_map<std::string, std::shared_ptr<ExpressionNode>> children;
+    explicit ObjectNode(size_t pos): ExpressionNode(pos) {}
+
+    void accept(NodeVisitor& v) const override {
+        v.visit(*this);
+    }
+};
+
+class ArrayNode : public ExpressionNode {
+public:
+    std::vector<std::shared_ptr<ExpressionNode>> children;
+    explicit ArrayNode(size_t pos): ExpressionNode(pos) {}
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);

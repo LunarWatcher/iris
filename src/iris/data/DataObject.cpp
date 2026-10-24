@@ -362,11 +362,12 @@ DataObject& DataObject::get(const DataPointer& ptr, size_t offset) {
         if constexpr (
             std::is_same_v<T, ObjectPtr>
         ) {
-            auto& it = at(ptr.path.at(offset));
 
             if (offset == ptr.path.size() - 1) {
+                auto& it = (*this)[ptr.path.at(offset)];
                 return it;
             }
+            auto& it = at(ptr.path.at(offset));
             return it.get(ptr, offset + 1);
         } else if constexpr (
             std::is_same_v<T, ArrayPtr>

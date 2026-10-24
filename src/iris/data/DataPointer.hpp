@@ -27,6 +27,8 @@ struct DataPointer {
             path.push_back(std::string(part.begin(), part.end()));
         } while (!src.empty());
     }
+    explicit DataPointer(const std::string& src) : DataPointer(std::string_view(src)) {}
+    explicit DataPointer(const char* src) : DataPointer(std::string_view(src)) {}
 
     // TODO: not sure if these are necessary
     explicit DataPointer(const std::vector<std::string>& path) : path(path) {}

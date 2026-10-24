@@ -17,6 +17,8 @@ class StatisticsVisitor : public NodeVisitor {
     void visit(const TextNode&) override {}
     void visit(const ExpressionNode&) override {}
     void visit(const LiteralNode&) override {}
+    void visit(const ObjectNode&) override {}
+    void visit(const ArrayNode&) override {}
 
     void visit(const DataNode&) override {
         variable_counter += 1;

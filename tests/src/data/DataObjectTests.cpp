@@ -87,6 +87,11 @@ TEST_CASE("DataObject init") {
             );
         }
     }
+    SECTION("Should be constructable with nullptr") {
+        iris::DataObject o = nullptr;
+        REQUIRE(o.is_null());
+        REQUIRE_FALSE(o.is_bool());
+    }
 }
 
 TEST_CASE("DataObject equality") {
@@ -211,7 +216,6 @@ TEST_CASE("DataObject serialization") {
 
         REQUIRE(obj.serialize() == R"({"key":a.str})");
         REQUIRE(obj.serialize(false, &renderData) == R"({"key":"trans rights are human rights"})");
-        
     }
 
     SECTION("Should serialize null correctly") {

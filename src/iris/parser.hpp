@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -67,14 +66,11 @@ class Parser {
         }
     }
 
-    void add_literal(Arguments &arguments, const char* content_ptr) {
-        // TODO: Why does the linter not like this .data call? The length should be properly provided
-        const std::string_view data_text(
+    std::string_view getDataText() {
+        return std::string_view(
             literal_start.data(),
             tok.text.data() - literal_start.data() + tok.text.size()
         );
-        DataObject root;
-        arguments.emplace_back(std::make_shared<LiteralNode>(std::move(root), data_text.data() - content_ptr));
     }
 
     void add_operator(Arguments &arguments, OperatorStack &operator_stack) {
@@ -148,57 +144,134 @@ class Parser {
         return tok.kind == closing;
     }
 
+    std::stack<std::string> objectKeys;
+    std::stack<std::variant<std::shared_ptr<ObjectNode>, std::shared_ptr<ArrayNode>>> objectStack;
+
     std::shared_ptr<ExpressionNode> parse_expression(Template& tmpl) {
-        size_t current_bracket_level {0};
-        size_t current_brace_level {0};
         Arguments arguments;
         OperatorStack operator_stack;
+
+        if (!objectKeys.empty() || !objectStack.empty()) {
+            [[unlikely]]
+            throw std::runtime_error(
+                "Critical programmer error: parse_expression was called with a non-empty object stack. "
+                "This is a bug, open an issue: https://codeberg.org/LunarWatcher/iris"
+            );
+        }
 
         while (tok.kind != Token::Kind::Eof) {
             // Literals
             switch (tok.kind) {
             case Token::Kind::String: {
-                if (current_brace_level == 0 && current_bracket_level == 0) {
+                if (objectStack.empty()) {
                     literal_start = tok.text;
-                    add_literal(arguments, tmpl.content.c_str());
+
+                    auto body = getDataText();
+
+                    if (!body.starts_with('"') || !body.ends_with('"')) {
+                        throw_parser_error("Illegal string");
+                    }
+                    
+                    DataObject root = std::string(body.size() > 2 ? body.substr(1, body.size() - 2) : "");
+                    arguments.emplace_back(
+                        std::make_shared<LiteralNode>(std::move(root), body.data() - tmpl.content.c_str())
+                    );
+                } else {
+                    throw std::runtime_error("Unhandled");
                 }
             } break;
             case Token::Kind::Number: {
-                if (current_brace_level == 0 && current_bracket_level == 0) {
+                if (objectStack.empty()) {
                     literal_start = tok.text;
-                    add_literal(arguments, tmpl.content.c_str());
+
+                    // TODO: actually parse as ints
+                    auto body = getDataText();
+                    DataObject root = std::string(body);
+                    arguments.emplace_back(
+                        std::make_shared<LiteralNode>(std::move(root), body.data() - tmpl.content.c_str())
+                    );
                 }
             } break;
-            case Token::Kind::LeftBracket: {
-                if (current_brace_level == 0 && current_bracket_level == 0) {
+            case Token::Kind::LeftBracket: { // [
+                if (objectStack.empty()) {
                     literal_start = tok.text;
                 }
-                current_bracket_level += 1;
+                objectStack.push(
+                    std::make_shared<ArrayNode>(literal_start.data() - tmpl.content.c_str())
+                );
             } break;
-            case Token::Kind::LeftBrace: {
-                if (current_brace_level == 0 && current_bracket_level == 0) {
+            case Token::Kind::LeftBrace: { // {
+                if (objectStack.empty()) {
                     literal_start = tok.text;
                 }
-                current_brace_level += 1;
+                objectStack.push(
+                    std::make_shared<ObjectNode>(literal_start.data() - tmpl.content.c_str())
+                );
             } break;
             case Token::Kind::RightBracket: {
-                if (current_bracket_level == 0) {
+                if (objectStack.empty()) {
                     throw_parser_error("unexpected ']'");
                 }
 
-                current_bracket_level -= 1;
-                if (current_brace_level == 0 && current_bracket_level == 0) {
-                    add_literal(arguments, tmpl.content.c_str());
+                auto node = objectStack.top();
+                objectStack.pop();
+
+                if (!std::holds_alternative<std::shared_ptr<ArrayNode>>(node)) {
+                    throw_parser_error(
+                        "Found ] when } was expected"
+                    );
+                }
+
+                auto arrNode = std::get<std::shared_ptr<ArrayNode>>(node);
+                
+                if (objectStack.empty()) {
+                    arguments.emplace_back(std::get<std::shared_ptr<ArrayNode>>(node));
+                } else {
+                    auto& parentNode = objectStack.top();
+                    if (std::holds_alternative<std::shared_ptr<ArrayNode>>(parentNode)) {
+                        std::get<std::shared_ptr<ArrayNode>>(parentNode)->children.push_back(
+                            std::move(arrNode)
+                        );
+                    } else {
+                        auto k = objectKeys.top();
+                        objectKeys.pop();
+                        std::get<std::shared_ptr<ObjectNode>>(parentNode)->children.insert(
+                            {std::move(k), std::move(arrNode)}
+                        );
+                    }
                 }
             } break;
             case Token::Kind::RightBrace: {
-                if (current_brace_level == 0) {
+                if (objectStack.empty()) {
                     throw_parser_error("unexpected '}'");
                 }
 
-                current_brace_level -= 1;
-                if (current_brace_level == 0 && current_bracket_level == 0) {
-                    add_literal(arguments, tmpl.content.c_str());
+                auto node = objectStack.top();
+                objectStack.pop();
+
+                if (!std::holds_alternative<std::shared_ptr<ObjectNode>>(node)) {
+                    throw_parser_error(
+                        "Found ] when } was expected"
+                    );
+                }
+
+                auto objNode = std::get<std::shared_ptr<ObjectNode>>(node);
+                
+                if (objectStack.empty()) {
+                    arguments.emplace_back(std::get<std::shared_ptr<ObjectNode>>(node));
+                } else {
+                    auto& parentNode = objectStack.top();
+                    if (std::holds_alternative<std::shared_ptr<ArrayNode>>(parentNode)) {
+                        std::get<std::shared_ptr<ArrayNode>>(parentNode)->children.push_back(
+                            std::move(objNode)
+                        );
+                    } else {
+                        auto k = objectKeys.top();
+                        objectKeys.pop();
+                        std::get<std::shared_ptr<ObjectNode>>(parentNode)->children.insert(
+                            {k, std::move(objNode)}
+                        );
+                    }
                 }
             } break;
             case Token::Kind::Id: {
@@ -207,9 +280,20 @@ class Parser {
                 // Data Literal
                 if (tok.text == static_cast<decltype(tok.text)>("true") || tok.text == static_cast<decltype(tok.text)>("false") ||
                     tok.text == static_cast<decltype(tok.text)>("null")) {
-                    if (current_brace_level == 0 && current_bracket_level == 0) {
+                    if (objectStack.empty()) {
                         literal_start = tok.text;
-                        add_literal(arguments, tmpl.content.c_str());
+                        auto body = getDataText();
+                        DataObject root;
+
+                        if (tok.text == "false" || tok.text == "true") {
+                            root = tok.text == "true";
+                        } else {
+                            // Technically redundant, but this feels clearer
+                            root = nullptr;
+                        }
+                        arguments.emplace_back(
+                            std::make_shared<LiteralNode>(std::move(root), body.data() - tmpl.content.c_str())
+                        );
                     }
 
                     // Operator
@@ -334,12 +418,12 @@ class Parser {
                 operator_stack.emplace(function_node);
             } break;
             case Token::Kind::Comma: {
-                if (current_brace_level == 0 && current_bracket_level == 0) {
+                if (objectStack.empty()) {
                     goto break_loop;
                 }
             } break;
             case Token::Kind::Colon: {
-                if (current_brace_level == 0 && current_bracket_level == 0) {
+                if (objectStack.empty()) {
                     throw_parser_error("unexpected ':'");
                 }
             } break;
@@ -403,6 +487,10 @@ class Parser {
         }
 
     break_loop:
+        if (!objectStack.empty() || !objectKeys.empty()) {
+            throw_parser_error("malformed expression (unterminated object or array)");
+        }
+
         while (!operator_stack.empty()) {
             add_operator(arguments, operator_stack);
         }

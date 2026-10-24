@@ -19,6 +19,7 @@
 #include "exceptions.hpp"
 #include "function_storage.hpp"
 #include "iris/data/DataObject.hpp"
+#include "iris/data/DataPointer.hpp"
 #include "node.hpp"
 #include "template.hpp"
 #include "throw.hpp"
@@ -142,7 +143,8 @@ class Renderer : public NodeVisitor {
         data_eval_stack.push(result_ptr.get());
     }
 
-    template <size_t N, size_t N_start = 0, bool throw_not_found = true> std::array<const DataObject*, N> get_arguments(const FunctionNode& node) {
+    template <size_t N, size_t N_start = 0, bool throw_not_found = true>
+    std::array<const DataObject*, N> get_arguments(const FunctionNode& node) {
         if (node.arguments.size() < N_start + N) {
             throw_renderer_error("function needs " + std::to_string(N_start + N) + " variables, but has only found " + std::to_string(node.arguments.size()), node);
         }
@@ -172,7 +174,8 @@ class Renderer : public NodeVisitor {
         return result;
     }
 
-    template <bool throw_not_found = true> Arguments get_argument_vector(const FunctionNode& node) {
+    template <bool throw_not_found = true>
+    Arguments get_argument_vector(const FunctionNode& node) {
         const size_t N = node.arguments.size();
         for (const auto& a : node.arguments) {
             a->accept(*this);
@@ -214,6 +217,9 @@ class Renderer : public NodeVisitor {
     }
 
     void visit(const ExpressionNode&) override {}
+
+    void visit(const ArrayNode& node) override;
+    void visit(const ObjectNode& node) override;
 
     void visit(const LiteralNode& node) override {
         data_eval_stack.push(&node.value);
@@ -665,9 +671,7 @@ class Renderer : public NodeVisitor {
     }
 
     void visit(const SetStatementNode& node) override {
-        std::string ptr = node.key;
-        replace_substring(ptr, ".", "/");
-        ptr = "/" + ptr;
+        DataPointer ptr(node.key);
         additional_data[ptr] = *eval_expression_list(node.expression);
     }
 

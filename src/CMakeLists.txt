@@ -1,6 +1,8 @@
 add_library(iris
-    ./iris/data/DataObject.cpp
-    ./iris/data/DataPointer.cpp
+    iris/data/DataObject.cpp
+    iris/data/DataPointer.cpp
+
+    iris/renderer.cpp
 )
 add_library(iris::iris ALIAS iris)
 
