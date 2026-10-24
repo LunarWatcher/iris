@@ -2,6 +2,8 @@ add_library(iris
     iris/data/DataObject.cpp
     iris/data/DataPointer.cpp
 
+    iris/config.cpp
+    iris/environment.cpp
     iris/renderer.cpp
     iris/parser.cpp
 )

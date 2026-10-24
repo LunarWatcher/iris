@@ -6,6 +6,8 @@ add_executable(tests
     src/parsing/LogicTests.cpp
     src/parsing/SetTests.cpp
     src/parsing/SubstitutionTests.cpp
+
+    src/parsing/errors/ErrorMessageTests.cpp
 )
 
 Include(FetchContent)
