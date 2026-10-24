@@ -27,9 +27,6 @@ DataObject::DataObject(Object&& value) : data(std::make_shared<Object>(std::move
 DataObject::DataObject(Null null) : data(null) {}
 DataObject::DataObject() : data(nullptr) {}
 
-DataObject::DataObject(const DataPointer& dataPointer) : data(dataPointer) {}
-DataObject::DataObject(DataPointer&& dataPointer) : data(std::move(dataPointer)) {}
-
 DataObject::DataObject(Boolean value) : data(value) {}
 
 DataObject::DataObject(std::initializer_list<DataObject> list) : DataObject(Array(list)) {}
@@ -103,17 +100,6 @@ std::string DataObject::serialize(bool nested, DataObject* renderData) const {
                 acc << value->at(i).serialize(true, renderData);
             }
             acc << ']';
-        } else if constexpr (std::is_same_v<DataPointer, T>) {
-            if (renderData != nullptr) {
-                acc << (*renderData)[value].serialize(nested, renderData);
-            } else {
-                for (size_t i = 0; i < value.path.size(); ++i) {
-                    if (i != 0) {
-                        acc << ".";
-                    }
-                    acc << value.path.at(i);
-                }
-            }
         } else {
             acc << std::format("{}", value);
         }

@@ -46,8 +46,7 @@ private:
         Boolean,
         Int,
         Float,
-        Null,
-        DataPointer
+        Null
     > data;
     void destroy();
 public:
@@ -64,10 +63,6 @@ public:
     DataObject(Object&& value);
 
     DataObject(Null null);
-
-    // TODO: this can be private with some `friend class`es since it's meant to be internal use only
-    DataObject(const DataPointer& dataPointer);
-    DataObject(DataPointer&& dataPointer);
 
     DataObject(Boolean value);
 
