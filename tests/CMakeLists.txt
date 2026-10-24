@@ -5,6 +5,7 @@ add_executable(tests
 
     src/rendering/FileLoadingTests.cpp
     src/rendering/LogicTests.cpp
+    src/rendering/OperatorTests.cpp
     src/rendering/SetTests.cpp
     src/rendering/SubstitutionTests.cpp
 

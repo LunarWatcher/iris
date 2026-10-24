@@ -32,6 +32,22 @@ TEST_CASE("Set statements", "[set]") {
             INFO("{{ null }} should be an empty string");
             REQUIRE(result == "");
         }
+
+        SECTION("Integers") {
+            std::string result = iris::render(
+                R"({% set x = 1234 %}{{ x }}, {{ isInteger(x) }}, {{ isFloat(x) }}, {{ isNumber(x) }})",
+                iris::Object {}
+            );
+            REQUIRE(result == "1234, true, false, true");
+        }
+
+        SECTION("Doubles") {
+            std::string result = iris::render(
+                R"({% set x = 10.3 %}{{ x }}, {{ isInteger(x) }}, {{ isFloat(x) }}, {{ isNumber(x) }})",
+                iris::Object {}
+            );
+            REQUIRE(result == "10.3, false, true, true");
+        }
     }
 
     SECTION("Object statements") {

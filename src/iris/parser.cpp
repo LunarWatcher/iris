@@ -1,4 +1,5 @@
 #include "parser.hpp"
+#include <format>
 #include <memory>
 
 namespace iris {
@@ -162,11 +163,56 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
             if (objectStack.empty()) {
                 literal_start = tok.text;
 
-                // TODO: actually parse as ints
-                auto body = getDataText();
-                DataObject root = std::string(body);
-                arguments.emplace_back(std::make_shared<LiteralNode>(
-                        std::move(root), body.data() - tmpl.content.c_str()));
+                auto body = std::string(getDataText());
+                DataObject obj;
+                size_t ptr;
+                try {
+                    if (body.find('.') != std::string_view::npos) {
+                        auto value = std::stod(body, &ptr);
+                        if (ptr != body.size()) {
+                            throw_parser_error(
+                                std::format(
+                                    "Illegal double: {}",
+                                    body
+                                )
+                            );
+                        }
+                        obj = value;
+                    } else {
+                        auto value = std::stoll(body, &ptr);
+                        if (ptr != body.size()) {
+                            throw_parser_error(
+                                std::format(
+                                    "Illegal integer: {}",
+                                    body
+                                )
+                            );
+                        }
+                        obj = value;
+                    }
+                } catch (const std::invalid_argument& e) {
+                    throw_parser_error(
+                        std::format(
+                            "{} could not be parsed as a legal number. Native error: {}",
+                            body,
+                            e.what()
+                        )
+                    );
+                } catch (const std::out_of_range& e) {
+                    throw_parser_error(
+                        std::format(
+                            "The number {} is too big to be represented by this type. Native error: {}",
+                            body,
+                            e.what()
+                        )
+                    );
+                }
+                arguments.emplace_back(
+                    std::make_shared<LiteralNode>(
+                        std::move(obj),
+                        body.data() - tmpl.content.c_str()
+                    )
+                );
             }
         } break;
         case Token::Kind::LeftBracket: { // [
