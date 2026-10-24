@@ -15,8 +15,8 @@ TEST_CASE("DataObject init") {
 
     SECTION("Should be constructible with an unsigned int") {
         iris::DataObject o((uint32_t) 2);
-        REQUIRE(o.is_uint());
-        REQUIRE(o.get<iris::UInt>() == 2);
+        REQUIRE(o.is_int());
+        REQUIRE(o.get<iris::Int>() == 2);
     }
 
     SECTION("Should be constructable with a float") {
@@ -98,7 +98,7 @@ TEST_CASE("DataObject equality") {
     SECTION("Primitives") {
         REQUIRE(iris::DataObject(3) == iris::DataObject(3));
         INFO((iris::DataObject(3) == iris::DataObject(3.0)));
-        REQUIRE(iris::DataObject(3) != iris::DataObject(3.0));
+        REQUIRE(iris::DataObject(3) == iris::DataObject(3.0));
         REQUIRE(iris::DataObject(3.0) == iris::DataObject(3.0));
         REQUIRE(iris::DataObject(3) != iris::DataObject(4.0));
         REQUIRE(iris::DataObject("3.0") != iris::DataObject(3.0));
@@ -107,6 +107,8 @@ TEST_CASE("DataObject equality") {
     SECTION("Null") {
         REQUIRE(iris::DataObject() == iris::DataObject(nullptr));
         REQUIRE(iris::DataObject() != iris::DataObject("3"));
+        REQUIRE(iris::DataObject() != iris::DataObject(iris::Array {}));
+        REQUIRE(iris::DataObject() != iris::DataObject(iris::Object {}));
         REQUIRE(iris::DataObject() != iris::DataObject(3));
         REQUIRE(iris::DataObject() != iris::DataObject(3.0));
     }
@@ -159,6 +161,26 @@ TEST_CASE("DataObject comparison") {
 
             REQUIRE(iris::DataObject(3.0) >= iris::DataObject(3.0));
             REQUIRE(iris::DataObject(3.0) <= iris::DataObject(3.0));
+        }
+
+        SECTION("Mixed") {
+            // float lead
+            REQUIRE(iris::DataObject(3.0) >= iris::DataObject(2));
+            REQUIRE(iris::DataObject(2.0) <= iris::DataObject(3));
+            REQUIRE_FALSE(iris::DataObject(3.0) <= iris::DataObject(2));
+            REQUIRE_FALSE(iris::DataObject(2.0) >= iris::DataObject(3));
+
+            REQUIRE(iris::DataObject(3.0) >= iris::DataObject(3));
+            REQUIRE(iris::DataObject(3.0) <= iris::DataObject(3));
+
+            // int lead
+            REQUIRE(iris::DataObject(3) >= iris::DataObject(2.0));
+            REQUIRE(iris::DataObject(2) <= iris::DataObject(3.0));
+            REQUIRE_FALSE(iris::DataObject(3) <= iris::DataObject(2.0));
+            REQUIRE_FALSE(iris::DataObject(2) >= iris::DataObject(3.0));
+
+            REQUIRE(iris::DataObject(3) >= iris::DataObject(3.0));
+            REQUIRE(iris::DataObject(3) <= iris::DataObject(3.0));
         }
     }
 }

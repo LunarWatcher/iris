@@ -18,7 +18,6 @@ using Array = std::vector<DataObject>;
 using Object = std::unordered_map<std::string, DataObject>;
 using Boolean = bool;
 using Int = int64_t;
-using UInt = uint64_t;
 using Float = double;
 using Null = std::nullptr_t;
 
@@ -27,6 +26,11 @@ using ArrayPtr = std::shared_ptr<Array>;
 using ObjectPtr = std::shared_ptr<Object>;
 
 
+template <typename T>
+concept IsPointerType =
+    std::is_same_v<T, StringPtr>
+    || std::is_same_v<T, ArrayPtr>
+    || std::is_same_v<T, ObjectPtr>;
 
 /**
  * TODOs:
@@ -41,7 +45,6 @@ private:
         ObjectPtr,
         Boolean,
         Int,
-        UInt,
         Float,
         Null,
         DataPointer
@@ -71,11 +74,8 @@ public:
     template <std::floating_point T>
     DataObject(T value) : data((Float) value) {}
 
-    template <std::signed_integral T>
+    template <std::integral T>
     DataObject(T value) : data((Int) value) {}
-
-    template <std::unsigned_integral T>
-    DataObject(T value) : data((UInt) value) {}
 
     ~DataObject();
 
@@ -124,15 +124,12 @@ public:
 
     bool is_null() const { return std::holds_alternative<Null>(data); }
     bool is_int() const { return std::holds_alternative<Int>(data); }
-    bool is_uint() const { return std::holds_alternative<UInt>(data); }
     bool is_float() const { return std::holds_alternative<Float>(data); }
     bool is_bool() const { return std::holds_alternative<Boolean>(data); }
     bool is_string() const { return std::holds_alternative<StringPtr>(data); }
     bool is_array() const { return std::holds_alternative<ArrayPtr>(data); }
     bool is_object() const { return std::holds_alternative<ObjectPtr>(data); }
-    bool is_number() const { return is_int() || is_uint() || is_float(); }
-
-    bool is_any_int() const { return is_int() || is_uint(); }
+    bool is_number() const { return is_int() || is_float(); }
 
     Int coerceInt() const;
     Float coerceFloat() const;

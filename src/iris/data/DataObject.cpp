@@ -141,17 +141,18 @@ bool DataObject::operator==(const DataObject& other) const {
     return std::visit([](const auto& a, const auto& b) {
         using t1 = std::decay_t<decltype(a)>;
         using t2 = std::decay_t<decltype(b)>;
-        if constexpr (std::is_same_v<t1, t2>) {
-            if constexpr (
-                std::is_same_v<t1, StringPtr>
-                || std::is_same_v<t1, ObjectPtr>
-                || std::is_same_v<t1, ArrayPtr>
-            ) {
+        if constexpr (IsPointerType<t1> || IsPointerType<t2>) {
+            if constexpr (std::is_same_v<t1, t2>) {
                 return (*a) == (*b);
             } else {
-                return a == b;
+                // The pointer types are all complex enough that there are no trivial conversions, so we don't need to
+                // do anything else here
+                return false;
             }
         } else {
+            if constexpr (std::equality_comparable_with<t1, t2>) {
+                return a == b;
+            }
             return false;
         }
     }, this->data, other.data);
@@ -161,21 +162,21 @@ bool DataObject::operator<=(const DataObject& other) const {
     return std::visit([](const auto& a, const auto& b) -> bool {
         using t1 = std::decay_t<decltype(a)>;
         using t2 = std::decay_t<decltype(b)>;
-        if constexpr (std::is_same_v<t1, t2>) {
+        if constexpr (IsPointerType<t1> || IsPointerType<t2>) {
             if constexpr (
-                std::is_same_v<t1, StringPtr>
-                || std::is_same_v<t1, ArrayPtr>
+                std::is_same_v<t1, t2>
+                && !std::is_same_v<t1, ObjectPtr>
             ) {
                 return (*a) <= (*b);
-            } else if constexpr (
-                std::is_same_v<t1, ObjectPtr>
-                || std::is_same_v<t1, Null>
-            ) {
-                throw std::runtime_error("operator<= on objects and null is undefined");
             } else {
-                return a <= b;
+                // The pointer types are all complex enough that there are no trivial conversions, so we don't need to
+                // do anything else here
+                return false;
             }
         } else {
+            if constexpr (std::totally_ordered_with<t1, t2>) {
+                return a <= b;
+            }
             return false;
         }
     }, this->data, other.data);
@@ -185,21 +186,21 @@ bool DataObject::operator>=(const DataObject& other) const {
     return std::visit([](const auto& a, const auto& b) -> bool {
         using t1 = std::decay_t<decltype(a)>;
         using t2 = std::decay_t<decltype(b)>;
-        if constexpr (std::is_same_v<t1, t2>) {
+        if constexpr (IsPointerType<t1> || IsPointerType<t2>) {
             if constexpr (
-                std::is_same_v<t1, StringPtr>
-                || std::is_same_v<t1, ArrayPtr>
+                std::is_same_v<t1, t2>
+                && !std::is_same_v<t1, ObjectPtr>
             ) {
                 return (*a) >= (*b);
-            } else if constexpr (
-                std::is_same_v<t1, ObjectPtr>
-                || std::is_same_v<t1, Null>
-            ) {
-                throw std::runtime_error("operator>= on objects and null is undefined");
             } else {
-                return a >= b;
+                // The pointer types are all complex enough that there are no trivial conversions, so we don't need to
+                // do anything else here
+                return false;
             }
         } else {
+            if constexpr (std::totally_ordered_with<t1, t2>) {
+                return a >= b;
+            }
             return false;
         }
     }, this->data, other.data);
@@ -208,21 +209,21 @@ bool DataObject::operator<(const DataObject& other) const {
     return std::visit([](const auto& a, const auto& b) -> bool {
         using t1 = std::decay_t<decltype(a)>;
         using t2 = std::decay_t<decltype(b)>;
-        if constexpr (std::is_same_v<t1, t2>) {
+        if constexpr (IsPointerType<t1> || IsPointerType<t2>) {
             if constexpr (
-                std::is_same_v<t1, StringPtr>
-                || std::is_same_v<t1, ArrayPtr>
+                std::is_same_v<t1, t2>
+                && !std::is_same_v<t1, ObjectPtr>
             ) {
-                return (*a) > (*b);
-            } else if constexpr (
-                std::is_same_v<t1, ObjectPtr>
-                || std::is_same_v<t1, Null>
-            ) {
-                throw std::runtime_error("operator< on objects and null is undefined");
+                return (*a) < (*b);
             } else {
-                return a < b;
+                // The pointer types are all complex enough that there are no trivial conversions, so we don't need to
+                // do anything else here
+                return false;
             }
         } else {
+            if constexpr (std::totally_ordered_with<t1, t2>) {
+                return a < b;
+            }
             return false;
         }
     }, this->data, other.data);
@@ -231,41 +232,41 @@ bool DataObject::operator>(const DataObject& other) const {
     return std::visit([](const auto& a, const auto& b) -> bool {
         using t1 = std::decay_t<decltype(a)>;
         using t2 = std::decay_t<decltype(b)>;
-        if constexpr (std::is_same_v<t1, t2>) {
+        if constexpr (IsPointerType<t1> || IsPointerType<t2>) {
             if constexpr (
-                std::is_same_v<t1, StringPtr>
-                || std::is_same_v<t1, ArrayPtr>
+                std::is_same_v<t1, t2>
+                && !std::is_same_v<t1, ObjectPtr>
             ) {
                 return (*a) > (*b);
-            } else if constexpr (
-                std::is_same_v<t1, ObjectPtr>
-                || std::is_same_v<t1, Null>
-            ) {
-                throw std::runtime_error("operator> on objects and null is undefined");
             } else {
-                return a > b;
+                // The pointer types are all complex enough that there are no trivial conversions, so we don't need to
+                // do anything else here
+                return false;
             }
         } else {
+            if constexpr (std::totally_ordered_with<t1, t2>) {
+                return a > b;
+            }
             return false;
         }
     }, this->data, other.data);
 }
 bool DataObject::operator!=(const DataObject& other) const {
-    
     return std::visit([](const auto& a, const auto& b) {
         using t1 = std::decay_t<decltype(a)>;
         using t2 = std::decay_t<decltype(b)>;
-        if constexpr (std::is_same_v<t1, t2>) {
-            if constexpr (
-                std::is_same_v<t1, StringPtr>
-                || std::is_same_v<t1, ObjectPtr>
-                || std::is_same_v<t1, ArrayPtr>
-            ) {
+        if constexpr (IsPointerType<t1> || IsPointerType<t2>) {
+            if constexpr (std::is_same_v<t1, t2>) {
                 return (*a) != (*b);
             } else {
-                return a != b;
+                // The pointer types are all complex enough that there are no trivial conversions, so we don't need to
+                // do anything else here
+                return true;
             }
         } else {
+            if constexpr (std::equality_comparable_with<t1, t2>) {
+                return a != b;
+            }
             return true;
         }
     }, this->data, other.data);
@@ -277,8 +278,6 @@ Int DataObject::coerceInt() const {
         return std::get<Int>(data);
     } else if (std::holds_alternative<Float>(data)) {
         return (Int) std::get<Float>(data);
-    } else if (std::holds_alternative<UInt>(data)) {
-        return (Int) std::get<UInt>(data);
     } else {
         throw std::runtime_error("Not a numeric type");
     }
@@ -289,8 +288,6 @@ Float DataObject::coerceFloat() const {
         return (Float) std::get<Int>(data);
     } else if (std::holds_alternative<Float>(data)) {
         return std::get<Float>(data);
-    } else if (std::holds_alternative<UInt>(data)) {
-        return (Float) std::get<UInt>(data);
     } else {
         throw std::runtime_error("Not a numeric type");
     }

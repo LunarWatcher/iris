@@ -69,10 +69,8 @@ void Renderer::render_to(std::ostream &os, const Template &tmpl,
 bool Renderer::truthy(const DataObject *data) {
     if (data->is_bool()) {
         return data->get<bool>();
-    } else if (data->is_int()) {
-        return (data->get<Int>() != 0);
-    } else if (data->is_uint()) {
-        return (data->get<UInt>() != 0);
+    } else if (data->is_number()) {
+        return ((*data) != 0);
     } else if (data->is_null()) {
         return false;
     }
@@ -85,8 +83,6 @@ void Renderer::print_data(const std::shared_ptr<DataObject> &value) {
         } else {
             *output_stream << value->get<String>();
         }
-    } else if (value->is_uint()) {
-        *output_stream << value->get<UInt>();
     } else if (value->is_int()) {
         *output_stream << value->get<Int>();
     } else if (value->is_null()) {
@@ -258,7 +254,7 @@ void Renderer::visit(const FunctionNode &node) {
         const auto args = get_arguments<2>(node);
         if (args[0]->is_string() && args[1]->is_string()) {
             make_result(args[0]->get<String>() + args[1]->get<String>());
-        } else if (args[0]->is_any_int() && args[1]->is_any_int()) {
+        } else if (args[0]->is_int() && args[1]->is_int()) {
             make_result(args[0]->coerceInt() + args[1]->coerceInt());
         } else {
             make_result(args[0]->coerceFloat() + args[1]->coerceFloat());
@@ -266,7 +262,7 @@ void Renderer::visit(const FunctionNode &node) {
     } break;
     case Op::Subtract: {
         const auto args = get_arguments<2>(node);
-        if (args[0]->is_any_int() && args[1]->is_any_int()) {
+        if (args[0]->is_int() && args[1]->is_int()) {
             make_result(args[0]->coerceInt() - args[1]->coerceInt());
         } else {
             make_result(args[0]->coerceFloat() - args[1]->coerceFloat());
@@ -274,7 +270,7 @@ void Renderer::visit(const FunctionNode &node) {
     } break;
     case Op::Multiplication: {
         const auto args = get_arguments<2>(node);
-        if (args[0]->is_any_int() && args[1]->is_any_int()) {
+        if (args[0]->is_int() && args[1]->is_int()) {
             make_result(args[0]->coerceInt() * args[1]->coerceInt());
         } else {
             make_result(args[0]->coerceFloat() * args[1]->coerceFloat());
@@ -289,7 +285,7 @@ void Renderer::visit(const FunctionNode &node) {
     } break;
     case Op::Power: {
         const auto args = get_arguments<2>(node);
-        if (args[0]->is_any_int() && args[1]->get<Int>() >= 0) {
+        if (args[0]->is_int() && args[1]->get<Int>() >= 0) {
             const auto result =
                 (Int)std::pow(args[0]->coerceInt(), args[1]->get<Int>());
             make_result(result);
@@ -440,7 +436,7 @@ void Renderer::visit(const FunctionNode &node) {
         make_result(get_arguments<1>(node)[0]->is_number());
     } break;
     case Op::IsInteger: {
-        make_result(get_arguments<1>(node)[0]->is_any_int());
+        make_result(get_arguments<1>(node)[0]->is_int());
     } break;
     case Op::IsFloat: {
         make_result(get_arguments<1>(node)[0]->is_float());
