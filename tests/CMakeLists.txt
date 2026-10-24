@@ -3,11 +3,12 @@ add_executable(tests
 
     src/data/DataObjectTests.cpp
 
-    src/parsing/LogicTests.cpp
-    src/parsing/SetTests.cpp
-    src/parsing/SubstitutionTests.cpp
+    src/rendering/FileLoadingTests.cpp
+    src/rendering/LogicTests.cpp
+    src/rendering/SetTests.cpp
+    src/rendering/SubstitutionTests.cpp
 
-    src/parsing/errors/ErrorMessageTests.cpp
+    src/rendering/errors/ErrorMessageTests.cpp
 )
 
 Include(FetchContent)
@@ -23,5 +24,7 @@ FetchContent_MakeAvailable(Catch2)
 target_link_libraries(tests Catch2::Catch2 iris::iris)
 
 target_include_directories(tests PUBLIC src/)
+
+target_compile_definitions(tests PUBLIC -DTEST_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}")
 
 # vim:ft=cmake
