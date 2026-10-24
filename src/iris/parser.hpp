@@ -23,6 +23,7 @@ class Parser {
 private:
     using Arguments = std::vector<std::shared_ptr<ExpressionNode>>;
     using OperatorStack = std::stack<std::shared_ptr<FunctionNode>>;
+    using ObjectStack = std::stack<std::variant<std::shared_ptr<ObjectNode>, std::shared_ptr<ArrayNode>>>;
 
     const ParserConfig& config;
 
@@ -58,13 +59,12 @@ private:
 
     bool parse_expression(Template &tmpl, Token::Kind closing);
 
-    std::stack<std::string> objectKeys;
-    std::stack<std::variant<std::shared_ptr<ObjectNode>, std::shared_ptr<ArrayNode>>> objectStack;
-    size_t objectsInObjectStack = 0;
-
     void pushExpressionNode(
         Arguments& args,
         std::shared_ptr<ExpressionNode>&& node,
+        std::stack<std::string>& objectKeys,
+        ObjectStack& objectStack,
+        size_t objectsInObjectStack,
         bool valueCanBeKey = false
     );
 

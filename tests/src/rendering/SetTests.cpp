@@ -58,6 +58,15 @@ TEST_CASE("Set statements", "[set]") {
             );
             REQUIRE(result == R"({"k":"value"}<>value)");
         }
+        SECTION("With references") {
+            std::string result = iris::render(
+                R"({% set x = { "k": val } %}{{ x }}<>{{ x.k }})",
+                iris::Object {
+                    {"val", "value"}
+                }
+            );
+            REQUIRE(result == R"({"k":"value"}<>value)");
+        }
     }
     SECTION("Array statements") {
         SECTION("Basic") {
@@ -66,6 +75,13 @@ TEST_CASE("Set statements", "[set]") {
                 iris::Object {}
             );
             REQUIRE(result == R"(["k","v"]<>v)");
+        }
+        SECTION("With references") {
+            std::string result = iris::render(
+                R"({% set x = [ "k", v ] %}{{ x }}<>{{ x.1 }})",
+                iris::Object {{"v", "mrrp meow :3"}}
+            );
+            REQUIRE(result == R"(["k","mrrp meow :3"]<>mrrp meow :3)");
         }
     }
 }

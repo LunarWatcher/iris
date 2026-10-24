@@ -99,9 +99,14 @@ bool Parser::parse_expression(Template &tmpl, Token::Kind closing) {
     return tok.kind == closing;
 }
 
-void Parser::pushExpressionNode(Arguments &args,
+void Parser::pushExpressionNode(
+    Arguments &args,
     std::shared_ptr<ExpressionNode> &&node,
-    bool valueCanBeKey) {
+    std::stack<std::string>& objectKeys,
+    ObjectStack& objectStack,
+    size_t objectsInObjectStack,
+    bool valueCanBeKey
+) {
     if (objectStack.empty()) {
         args.emplace_back(node);
     } else {
@@ -133,12 +138,9 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
     Arguments arguments;
     OperatorStack operator_stack;
 
-    if (!objectKeys.empty() || !objectStack.empty()) {
-        [[unlikely]] throw std::runtime_error(
-            "Critical programmer error: parse_expression was called with a "
-            "non-empty object stack. "
-            "This is a bug, open an issue: https://codeberg.org/LunarWatcher/iris");
-    }
+    std::stack<std::string> objectKeys;
+    std::stack<std::variant<std::shared_ptr<ObjectNode>, std::shared_ptr<ArrayNode>>> objectStack;
+    size_t objectsInObjectStack = 0;
 
     while (tok.kind != Token::Kind::Eof) {
         // Literals
@@ -152,12 +154,15 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                 throw_parser_error("Illegal string");
             }
 
-            DataObject root =
-                std::string(body.size() > 2 ? body.substr(1, body.size() - 2) : "");
+            DataObject root = std::string(
+                body.size() > 2 ? body.substr(1, body.size() - 2) : ""
+            );
             auto node = std::make_shared<LiteralNode>(
-                std::move(root), body.data() - tmpl.content.c_str());
+                std::move(root),
+                body.data() - tmpl.content.c_str()
+            );
 
-            pushExpressionNode(arguments, node, true);
+            pushExpressionNode(arguments, node, objectKeys, objectStack, objectsInObjectStack, true);
         } break;
         case Token::Kind::Number: {
             if (objectStack.empty()) {
@@ -232,7 +237,10 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
         } break;
         case Token::Kind::RightBracket: {
             if (objectStack.empty()) {
-                throw_parser_error("unexpected ']'");
+                // TODO: what consequences does disabling this throw have? It's necessary for IDs to be referencable in
+                // dicts and arrays
+                // throw_parser_error("unexpected ']'");
+                goto break_loop;
             }
 
             auto node = objectStack.top();
@@ -244,11 +252,14 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
 
             auto arrNode = std::get<std::shared_ptr<ArrayNode>>(node);
 
-            pushExpressionNode(arguments, arrNode);
+            pushExpressionNode(arguments, arrNode, objectKeys, objectStack, objectsInObjectStack);
         } break;
         case Token::Kind::RightBrace: {
             if (objectStack.empty()) {
-                throw_parser_error("unexpected '}'");
+                // TODO: what consequences does disabling this throw have? It's necessary for IDs to be referencable in
+                // dicts and arrays
+                // throw_parser_error("unexpected '}'");
+                goto break_loop;
             }
 
             auto node = objectStack.top();
@@ -262,9 +273,19 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
 
             auto objNode = std::get<std::shared_ptr<ObjectNode>>(node);
 
-            pushExpressionNode(arguments, objNode);
+            pushExpressionNode(arguments, objNode, objectKeys, objectStack, objectsInObjectStack);
         } break;
         case Token::Kind::Id: {
+            if (!objectStack.empty()) {
+                pushExpressionNode(
+                    arguments,
+                    parse_expression(tmpl),
+                    objectKeys,
+                    objectStack,
+                    objectsInObjectStack
+                );
+                continue;
+            }
             get_peek_token();
 
             // Data Literal
