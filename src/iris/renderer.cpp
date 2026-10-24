@@ -12,6 +12,7 @@ void Renderer::visit(const ArrayNode& node) {
     for (auto& child : node.children) {
         child->accept(*this);
         auto head = data_eval_stack.top();
+        data_eval_stack.pop();
 
         object->push_back(*head);
     }

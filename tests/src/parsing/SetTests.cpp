@@ -35,11 +35,22 @@ TEST_CASE("Set statements", "[set]") {
     }
 
     SECTION("Object statements") {
-        std::string result = iris::render(
-            R"({% set x = { "k": "value" } %}{{ x }}<>{{ x.k }})",
-            iris::Object {}
-        );
-        REQUIRE(result == R"({"k":"value"}<>value)");
+        SECTION("Basic") {
+            std::string result = iris::render(
+                R"({% set x = { "k": "value" } %}{{ x }}<>{{ x.k }})",
+                iris::Object {}
+            );
+            REQUIRE(result == R"({"k":"value"}<>value)");
+        }
+    }
+    SECTION("Array statements") {
+        SECTION("Basic") {
+            std::string result = iris::render(
+                R"({% set x = [ "k", "v" ] %}{{ x }}<>{{ x.1 }})",
+                iris::Object {}
+            );
+            REQUIRE(result == R"(["k","v"]<>v)");
+        }
     }
 }
 
