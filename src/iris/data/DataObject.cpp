@@ -11,10 +11,6 @@
 namespace iris {
 
 DataObject::~DataObject() {
-    // TODO: this was logical in earlier versions of this struct, but I don't think it's necessary anymore
-    if (std::holds_alternative<Null>(data)) {
-        return;
-    }
     this->data = nullptr;
 }
 
@@ -123,7 +119,7 @@ bool DataObject::empty() const {
         ) {
             return value->empty();
         } else {
-            throw std::runtime_error("Critical: called empty on a non-string/array type");
+            throw ContextlessRenderError("empty", "called empty on a non-string/array type");
         }
     }, data);
 }
@@ -270,7 +266,7 @@ Int DataObject::coerceInt() const {
     } else if (std::holds_alternative<Float>(data)) {
         return (Int) std::get<Float>(data);
     } else {
-        throw std::runtime_error("Not a numeric type");
+        throw ContextlessRenderError("convert", "Not a numeric type");
     }
 }
 
@@ -280,7 +276,7 @@ Float DataObject::coerceFloat() const {
     } else if (std::holds_alternative<Float>(data)) {
         return std::get<Float>(data);
     } else {
-        throw std::runtime_error("Not a numeric type");
+        throw ContextlessRenderError("convert", "Not a numeric type");
     }
 }
 
@@ -296,7 +292,10 @@ DataObject& DataObject::operator[](const std::string& key) {
             }
             return value->at(key);
         } else {
-            throw std::runtime_error("Critical: called operator[str] on a non-object");
+            throw ContextlessRenderError(
+                "access",
+                std::format("called operator[str] on a non-object w/key {}", key)
+            );
         }
     }, data);
 }
@@ -309,7 +308,7 @@ DataObject& DataObject::operator[](size_t pos) const {
         ) {
             return value->at(pos);
         } else {
-            throw std::runtime_error("Critical: called operator[int] on a non-object");
+            throw ContextlessRenderError("access", "called operator[int] on a non-array");
         }
     }, data);
 }
@@ -336,7 +335,10 @@ const DataObject& DataObject::at(const DataPointer& ptr, size_t offset) const {
             }
             return it.get(ptr, offset + 1);
         } else {
-            throw std::runtime_error("Critical: called operator[str] on a non-object");
+            throw ContextlessRenderError(
+                "access",
+                std::format("called at[str] on a non-object with access key {}", ptr.join())
+            );
         }
     }, data);
 }
@@ -365,7 +367,10 @@ DataObject& DataObject::get(const DataPointer& ptr, size_t offset) {
             }
             return it.get(ptr, offset + 1);
         } else {
-            throw std::runtime_error("Critical: called operator[str] on a non-object");
+            throw ContextlessRenderError(
+                "access",
+                std::format("called get[str] on a non-object with access key {}", ptr.join())
+            );
         }
     }, data);
 }
@@ -379,7 +384,10 @@ DataObject& DataObject::operator[](const DataPointer& ptr) {
         ) {
             return get(ptr, 0);
         } else {
-            throw std::runtime_error("Critical: called operator[str] on a non-object");
+            throw ContextlessRenderError(
+                "access",
+                std::format("called operator[ptr] on a non-object with key {}", ptr.join())
+            );
         }
     }, data);
 }
@@ -396,7 +404,7 @@ DataObject& DataObject::front() const {
         ) {
             return value->front();
         } else {
-            throw std::runtime_error("Critical: called front on a non-object");
+            throw ContextlessRenderError("access", "called front on a non-object");
         }
     }, data);
 }
@@ -408,7 +416,7 @@ DataObject& DataObject::back() const {
         ) {
             return value->back();
         } else {
-            throw std::runtime_error("Critical: called back on a non-object");
+            throw ContextlessRenderError("access", "called back on a non-object");
         }
     }, data);
 }
@@ -420,13 +428,14 @@ DataObject& DataObject::at(const std::string& key) const {
             std::is_same_v<T, ObjectPtr>
         ) {
             if (!value->contains(key)) {
-                throw std::runtime_error(
+                throw ContextlessRenderError(
+                    "access",
                     std::format("Illegal access on key {}", key)
                 );
             }
             return value->at(key);
         } else {
-            throw std::runtime_error("Critical: called at[str] on a non-object");
+            throw ContextlessRenderError("access", "called at[str] on a non-object");
         }
     }, data);
 }
@@ -440,7 +449,7 @@ bool DataObject::contains(const std::string& key) const {
             return value->contains(key);
 
         } else {
-            throw std::runtime_error("Critical: called exists on a non-object");
+            throw ContextlessRenderError("contains", "called exists on a non-object");
         }
     }, data);
 }
@@ -473,7 +482,7 @@ bool DataObject::contains(const DataPointer& ptr, size_t offset) const {
             const auto& it = at(index);
             return it.contains(ptr, offset + 1);
         } else {
-            throw std::runtime_error("Critical: called operator[str] on a non-object");
+            throw ContextlessRenderError("acecss", "called contains[ptr] on a non-object");
         }
     }, data);
 }
@@ -527,9 +536,10 @@ size_t DataObject::size() const {
         ) {
             return value->size();
         } else {
-            throw std::runtime_error(
+            throw ContextlessRenderError(
+                "access",
                 std::format(
-                    "Critical: called exists on a non-string/array/object (actual type: {})",
+                    "called exists on a non-string/array/object (actual type: {})",
                     type()
                 )
             );
@@ -560,7 +570,7 @@ void DataObject::push_back(const DataObject& obj) {
         ) {
             value->push_back(obj);
         } else {
-            throw std::runtime_error("Cannot push to non-array");
+            throw ContextlessRenderError("push", "Cannot push to non-array");
         }
     }, data);
 }
