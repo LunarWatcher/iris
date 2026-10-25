@@ -12,6 +12,20 @@ iris::render("Hello {{ name }}!", data); // Returns "Hello world!"
 
 Iris is a fork of [inja](https://github.com/pantor/inja/) with stronger guarantees against AI slop, as well as changes meant to benefit [violet](https://codeberg.org/LunarWatcher/violet) and whatever else in the general anti-AI ecosystem could need proper templates beyond what something more simple like mustache can provide.
 
+## Integration
+
+The suggested way to use iris is with FetchContent:
+```cmake
+include(FetchContent)
+FetchContent_Declare(iris
+    GIT_REPOSITORY https://codeberg.org/LunarWatcher/iris
+    GIT_TAG v0.2.0
+)
+FetchContent_MakeAvailable(iris)
+# ...
+target_include_libraries(your-target PUBLIC iris::iris)
+```
+
 ## Tutorial
 
 This tutorial will give you an idea how to use iris. It will explain the most important concepts and give practical advices using examples and executable code. Beside this tutorial, you may check out the [documentation](https://lunarwatcher.codeberg.page/iris).
