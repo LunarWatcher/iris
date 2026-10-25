@@ -19,4 +19,22 @@ TEST_CASE_METHOD(tests::FunctionFixture, "Test function calls") {
     );
 }
 
+TEST_CASE_METHOD(tests::FunctionFixture, "Test function calls in object literals") {
+    REQUIRE(
+        render(R"({% set x = { "v": add(3, 4) } %}{{ x }})")
+        ==
+        R"({"v":7})"
+    );
+    REQUIRE(
+        render(R"({% set x = { "v": add(3, add(2, 2)) } %}{{ x }})")
+        ==
+        R"({"v":7})"
+    );
+    REQUIRE(
+        render(R"({% set x = { "v": add(add(1, add(1, 1)), add(add(1, 1), add(2, add(0, 0)))) } %}{{ x }})")
+        ==
+        R"({"v":7})"
+    );
+}
+
 }
