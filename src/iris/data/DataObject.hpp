@@ -1,8 +1,10 @@
 #pragma once
 
 #include "iris/data/DataPointer.hpp"
+#include "iris/exceptions.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -115,8 +117,29 @@ public:
             || std::is_same_v<Object, T>
             || std::is_same_v<Array, T>
         ) {
+            using RT = std::shared_ptr<T>;
+            if (!std::holds_alternative<RT>(data)) {
+                throw ContextlessRenderError(
+                    "access",
+                    std::format(
+                        "Illegal get on type {}, but found {}",
+                        DataObject(T {}).type(),
+                        type()
+                    )
+                );
+            }
             return *std::get<std::shared_ptr<T>>(data);
         } else {
+            if (!std::holds_alternative<T>(data)) {
+                throw ContextlessRenderError(
+                    "access",
+                    std::format(
+                        "Illegal get on type {}, but found {}",
+                        DataObject(T {}).type(),
+                        type()
+                    )
+                );
+            }
             return std::get<T>(data);
         }
     }
