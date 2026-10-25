@@ -90,6 +90,13 @@ TEST_CASE("Set statements", "[set]") {
             );
             REQUIRE(result == R"(["k","mrrp meow :3"]<>mrrp meow :3)");
         }
+        SECTION("With mafs") {
+            auto result = iris::render(
+                R"({% set x = [ 1 + 2 ] %}{{ x }}<>{{ x.0 }}<>{{ isNumber(x.0) }})",
+                iris::Object {}
+            );
+            REQUIRE(result == R"([3]<>3<>true)");
+        }
     }
 }
 
