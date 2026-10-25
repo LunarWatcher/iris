@@ -113,7 +113,9 @@ void Parser::pushExpressionNode(
         } else {
             auto litNode = std::dynamic_pointer_cast<LiteralNode>(parentNode);
             if (!litNode) {
-                throw_parser_error("bug: expression did not get key and early safeguards failed");
+                throw_parser_error(
+                    "invalid key-value pair in object"
+                );
             }
 
             if (!litNode->value.is_string()) {
@@ -503,7 +505,7 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                     throw_parser_error("Found ':' in non-object");
                 }
             } else {
-                throw_parser_error("unexpected ':': failed to find key");
+                throw_parser_error("unexpected ':': no key defined");
             }
         } break;
         case Token::Kind::LeftParen: {

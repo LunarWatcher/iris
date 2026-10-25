@@ -11,11 +11,12 @@ This changelog is meant for people writing templates. For developers embedding i
 
 ### Added
 
-* Templates: `set` expressions referencing variables inside an object or array is now legal (i.e. `{% set a = "value" %}{% set x = { "k": a } %}` no longer throws a JSON deserialization error) ([#2](https://codeberg.org/LunarWatcher/iris/issues/2)).
+* `set` expressions referencing variables inside an object or array is now legal (i.e. `{% set a = "value" %}{% set x = { "k": a } %}` no longer throws a JSON deserialization error) ([#2](https://codeberg.org/LunarWatcher/iris/issues/2)).
+* `set` expressions are now allowed to contain both math and function calls in theri values
 
 ### Fixed
 
-* Templates: Malformed array expressions like `{% set x = ["a", "b" %}` now throw an understandable error instead of some generic shit ([violet#26](https://codeberg.org/LunarWatcher/violet/issues/26), [#1](https://codeberg.org/LunarWatcher/iris/issues/1))
+* Malformed array expressions like `{% set x = ["a", "b" %}` now throw an understandable error instead of some generic shit ([violet#26](https://codeberg.org/LunarWatcher/violet/issues/26), [#1](https://codeberg.org/LunarWatcher/iris/issues/1))
 
 ## v0.1.0
 
