@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <variant>
 #include <vector>
+#include <expected>
 
 namespace iris {
 
@@ -52,7 +53,7 @@ private:
     > data;
     void destroy();
 
-    static size_t parseSize(
+    static std::expected<size_t, std::string> parseSize(
         const std::string& src,
         const DataPointer& ptr
     );

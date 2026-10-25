@@ -23,7 +23,7 @@ TEST_CASE("Invalid array access should give usable error messages") {
             "{{ k.string }}",
             data
         ),
-        R"([iris.exception.render_error] (at 1:4) expected valid number, but found "string" while accessing path "k.string")"
+        R"([iris.exception.render_error] (at 1:4) variable 'k.string' not found)"
     );
 }
 

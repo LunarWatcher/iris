@@ -327,9 +327,15 @@ const DataObject& DataObject::at(const DataPointer& ptr, size_t offset) const {
         } else if constexpr (
             std::is_same_v<T, ArrayPtr>
         ) {
-            size_t index = parseSize(ptr.path.at(offset), ptr);
+            auto sizeResult = parseSize(ptr.path.at(offset), ptr);
+            if (!sizeResult.has_value()) {
+                throw ContextlessRenderError(
+                    "access",
+                    sizeResult.error()
+                );
+            }
 
-            auto& it = at(index);
+            auto& it = at(sizeResult.value());
             if (offset == ptr.path.size() - 1) {
                 return it;
             }
@@ -359,9 +365,16 @@ DataObject& DataObject::get(const DataPointer& ptr, size_t offset) {
         } else if constexpr (
             std::is_same_v<T, ArrayPtr>
         ) {
-            size_t index = parseSize(ptr.path.at(offset), ptr);
+            auto sizeResult = parseSize(ptr.path.at(offset), ptr);
 
-            auto& it = at(index);
+            if (!sizeResult.has_value()) {
+                throw ContextlessRenderError(
+                    "access",
+                    sizeResult.error()
+                );
+            }
+
+            auto& it = at(sizeResult.value());
             if (offset == ptr.path.size() - 1) {
                 return it;
             }
@@ -471,7 +484,13 @@ bool DataObject::contains(const DataPointer& ptr, size_t offset) const {
         } else if constexpr (
             std::is_same_v<T, ArrayPtr>
         ) {
-            size_t index = parseSize(ptr.path.at(offset), ptr);
+            auto indexResult = parseSize(ptr.path.at(offset), ptr);
+
+            if (!indexResult.has_value()) {
+                return false;
+            }
+
+            auto index = indexResult.value();
 
             if (value->size() <= index) {
                 return false;
@@ -487,7 +506,7 @@ bool DataObject::contains(const DataPointer& ptr, size_t offset) const {
     }, data);
 }
 
-size_t DataObject::parseSize(
+std::expected<size_t, std::string> DataObject::parseSize(
     const std::string& src,
     const DataPointer& ptr
 ) {
@@ -495,8 +514,7 @@ size_t DataObject::parseSize(
     try {
         auto result = std::stoull(src, &offset);
         if (offset != src.size()) {
-            throw ContextlessRenderError(
-                "access",
+            return std::unexpected(
                 std::format(
                     "expected valid number, but found \"{}\" while accessing path \"{}\"",
                     src,
@@ -505,10 +523,8 @@ size_t DataObject::parseSize(
             );
         }
         return result;
-        
     } catch (const std::invalid_argument& e) {
-        throw ContextlessRenderError(
-            "access",
+        return std::unexpected(
             std::format(
                 "expected valid number, but found \"{}\" while accessing path \"{}\"",
                 src,
@@ -516,8 +532,7 @@ size_t DataObject::parseSize(
             )
         );
     } catch (const std::out_of_range& e) {
-        throw ContextlessRenderError(
-            "access",
+        return std::unexpected(
             std::format(
                 "array index out of range in path {}",
                 ptr.join()

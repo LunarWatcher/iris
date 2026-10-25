@@ -16,6 +16,8 @@ add_executable(tests
     src/rendering/errors/InvalidDataPointerTests.cpp
     src/rendering/errors/InvalidLiteralErrorTests.cpp
     src/rendering/errors/InvalidStatementErrorTests.cpp
+
+    src/stdlib/ExistsTests.cpp
 )
 
 Include(FetchContent)

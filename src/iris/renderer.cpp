@@ -358,8 +358,10 @@ void Renderer::visit(const FunctionNode &node) {
         make_result(get_arguments<1>(node)[0]->coerceInt() % 2 == 0);
     } break;
     case Op::Exists: {
-        auto &&name = get_arguments<1>(node)[0]->get<String>();
-        make_result(data_input->contains(name));
+        const auto& name = get_arguments<1>(node)[0]->get<String>();
+        make_result(
+            data_input->contains(DataPointer(name))
+        );
     } break;
     case Op::ExistsInObject: {
         const auto args = get_arguments<2>(node);
