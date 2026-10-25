@@ -49,6 +49,11 @@ private:
         Null
     > data;
     void destroy();
+
+    static size_t parseSize(
+        const std::string& src,
+        const DataPointer& ptr
+    );
 public:
     DataObject();
 

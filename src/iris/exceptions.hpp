@@ -26,12 +26,22 @@ struct IrisError : public std::runtime_error {
           type(type), message(message), location(location) {}
 };
 
+struct ContextlessRenderError : public IrisError {
+    explicit ContextlessRenderError(
+        const std::string& type,
+        const std::string& message
+    ) : IrisError(type, message) {}
+};
+
 struct ParserError : public IrisError {
     explicit ParserError(const std::string& message, SourceLocation location): IrisError("parser_error", message, location) {}
 };
 
 struct RenderError : public IrisError {
-    explicit RenderError(const std::string& message, SourceLocation location): IrisError("render_error", message, location) {}
+    explicit RenderError(
+        const std::string& message,
+        SourceLocation location
+    ): IrisError("render_error", message, location) {}
 };
 
 struct FileError : public IrisError {

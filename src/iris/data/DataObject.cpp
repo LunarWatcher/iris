@@ -1,5 +1,8 @@
 #include "DataObject.hpp"
+#include "iris/data/DataPointer.hpp"
+#include "iris/exceptions.hpp"
 #include <iomanip>
+#include <stdexcept>
 #include <variant>
 #include <type_traits>
 #include <sstream>
@@ -325,8 +328,7 @@ const DataObject& DataObject::at(const DataPointer& ptr, size_t offset) const {
         } else if constexpr (
             std::is_same_v<T, ArrayPtr>
         ) {
-            // TODO: error handle
-            size_t index = std::stoull(ptr.path.at(offset));
+            size_t index = parseSize(ptr.path.at(offset), ptr);
 
             auto& it = at(index);
             if (offset == ptr.path.size() - 1) {
@@ -355,8 +357,7 @@ DataObject& DataObject::get(const DataPointer& ptr, size_t offset) {
         } else if constexpr (
             std::is_same_v<T, ArrayPtr>
         ) {
-            // TODO: error handle
-            size_t index = std::stoull(ptr.path.at(offset));
+            size_t index = parseSize(ptr.path.at(offset), ptr);
 
             auto& it = at(index);
             if (offset == ptr.path.size() - 1) {
@@ -461,8 +462,7 @@ bool DataObject::contains(const DataPointer& ptr, size_t offset) const {
         } else if constexpr (
             std::is_same_v<T, ArrayPtr>
         ) {
-            // TODO: error handle
-            size_t index = std::stoull(ptr.path.at(offset));
+            size_t index = parseSize(ptr.path.at(offset), ptr);
 
             if (value->size() <= index) {
                 return false;
@@ -476,6 +476,45 @@ bool DataObject::contains(const DataPointer& ptr, size_t offset) const {
             throw std::runtime_error("Critical: called operator[str] on a non-object");
         }
     }, data);
+}
+
+size_t DataObject::parseSize(
+    const std::string& src,
+    const DataPointer& ptr
+) {
+    size_t offset = 0;
+    try {
+        auto result = std::stoull(src, &offset);
+        if (offset != src.size()) {
+            throw ContextlessRenderError(
+                "access",
+                std::format(
+                    "expected valid number, but found \"{}\" while accessing path \"{}\"",
+                    src,
+                    ptr.join()
+                )
+            );
+        }
+        return result;
+        
+    } catch (const std::invalid_argument& e) {
+        throw ContextlessRenderError(
+            "access",
+            std::format(
+                "expected valid number, but found \"{}\" while accessing path \"{}\"",
+                src,
+                ptr.join()
+            )
+        );
+    } catch (const std::out_of_range& e) {
+        throw ContextlessRenderError(
+            "access",
+            std::format(
+                "array index out of range in path {}",
+                ptr.join()
+            )
+        );
+    }
 }
 
 size_t DataObject::size() const {

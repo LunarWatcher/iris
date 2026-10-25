@@ -13,6 +13,7 @@ add_executable(tests
     src/rendering/SetTests.cpp
     src/rendering/SubstitutionTests.cpp
 
+    src/rendering/errors/InvalidDataPointerTests.cpp
     src/rendering/errors/InvalidLiteralErrorTests.cpp
     src/rendering/errors/InvalidStatementErrorTests.cpp
 )

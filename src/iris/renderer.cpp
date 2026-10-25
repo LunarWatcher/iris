@@ -2,6 +2,7 @@
 #include "iris/data/DataObject.hpp"
 #include <numeric>
 #include <cmath>
+#include "iris/exceptions.hpp"
 #include "throw.hpp"
 
 namespace iris {
@@ -48,25 +49,32 @@ Renderer::Renderer(
     const RenderConfig &config,
     const TemplateStorage &template_storage,
     const FunctionStorage &function_storage
-) : config(config), template_storage(template_storage),
-      function_storage(function_storage) {}
-void Renderer::render_to(std::ostream &os, const Template &tmpl,
-                         const DataObject &data, DataObject *loop_data) {
-  output_stream = &os;
-  current_template = &tmpl;
-  data_input = &data;
-  if (loop_data != nullptr) {
-    additional_data = *loop_data;
-    // TODO: do we actually want this?
-    currentLoopData = std::make_shared<DataObject>(
-        additional_data["loop"]
-    );
-  }
+) : config(config),
+    template_storage(template_storage),
+    function_storage(function_storage) {}
 
-  template_stack.emplace_back(current_template);
-  current_template->root.accept(*this);
+void Renderer::render_to(
+    std::ostream &os,
+    const Template &tmpl,
+    const DataObject &data,
+    DataObject *loop_data
+) {
+    output_stream = &os;
+    current_template = &tmpl;
+    data_input = &data;
+    if (loop_data != nullptr) {
+        additional_data = *loop_data;
+        // TODO: do we actually want this?
+        currentLoopData = std::make_shared<DataObject>(
+            additional_data["loop"]
+        );
+    }
 
-  data_tmp_stack.clear();
+    template_stack.emplace_back(current_template);
+
+    current_template->root.accept(*this);
+
+    data_tmp_stack.clear();
 }
 
 bool Renderer::truthy(const DataObject *data) {
@@ -79,6 +87,7 @@ bool Renderer::truthy(const DataObject *data) {
     }
     return !data->empty();
 }
+
 void Renderer::print_data(const std::shared_ptr<DataObject> &value) {
     if (value->is_string()) {
         if (config.html_autoescape) {
@@ -184,23 +193,30 @@ void Renderer::visit(const LiteralNode &node) {
     data_eval_stack.push(&node.value);
 }
 void Renderer::visit(const DataNode &node) {
-    if (additional_data.contains(node.ptr)) {
-        data_eval_stack.push(&(additional_data[node.ptr]));
-    } else if (data_input->contains(node.ptr)) {
-        data_eval_stack.push(&(*data_input).at(node.ptr));
-    } else {
-        // Try to evaluate as a no-argument callback
-        const auto function_data = function_storage.find_function(node.name, 0);
-        if (function_data.operation == FunctionStorage::Operation::Callback) {
-            Arguments empty_args{};
-            const auto value =
-                std::make_shared<DataObject>(function_data.callback(empty_args));
-            data_tmp_stack.push_back(value);
-            data_eval_stack.push(value.get());
+    try {
+        if (additional_data.contains(node.ptr)) {
+            data_eval_stack.push(&(additional_data[node.ptr]));
+        } else if (data_input->contains(node.ptr)) {
+            data_eval_stack.push(&(*data_input).at(node.ptr));
         } else {
-            data_eval_stack.push(nullptr);
-            not_found_stack.emplace(&node);
+            // Try to evaluate as a no-argument callback
+            const auto function_data = function_storage.find_function(node.name, 0);
+            if (function_data.operation == FunctionStorage::Operation::Callback) {
+                Arguments empty_args{};
+                const auto value =
+                    std::make_shared<DataObject>(function_data.callback(empty_args));
+                data_tmp_stack.push_back(value);
+                data_eval_stack.push(value.get());
+            } else {
+                data_eval_stack.push(nullptr);
+                not_found_stack.emplace(&node);
+            }
         }
+    } catch (const ContextlessRenderError& err) {
+        throw_renderer_error(
+            err.message,
+            node
+        );
     }
 }
 void Renderer::visit(const FunctionNode &node) {

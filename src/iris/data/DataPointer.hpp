@@ -34,6 +34,8 @@ struct DataPointer {
     explicit DataPointer(const std::vector<std::string>& path) : path(path) {}
     explicit DataPointer(std::vector<std::string>&& path) : path(std::move(path)) {}
 
+    std::string join() const;
+
     bool operator==(const DataPointer& other) const;
     bool operator<(const DataPointer& other) const;
     bool operator>(const DataPointer& other) const;
