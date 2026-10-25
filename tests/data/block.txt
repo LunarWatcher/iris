@@ -1,0 +1,4 @@
+{%- extends "base/basefile.txt" -%}
+{%- block content -%}
+trans rights are human rights
+{%- endblock -%}

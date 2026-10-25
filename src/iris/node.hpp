@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "function_storage.hpp"
+#include "iris/data/DataPointer.hpp"
 #include "utils.hpp"
-#include "json.hpp"
 
 namespace iris {
 
@@ -19,6 +19,8 @@ class TextNode;
 class ExpressionNode;
 class LiteralNode;
 class DataNode;
+class ArrayNode;
+class ObjectNode;
 class FunctionNode;
 class ExpressionListNode;
 class StatementNode;
@@ -40,6 +42,8 @@ public:
     virtual void visit(const ExpressionNode& node) = 0;
     virtual void visit(const LiteralNode& node) = 0;
     virtual void visit(const DataNode& node) = 0;
+    virtual void visit(const ObjectNode& node) = 0;
+    virtual void visit(const ArrayNode& node) = 0;
     virtual void visit(const FunctionNode& node) = 0;
     virtual void visit(const ExpressionListNode& node) = 0;
     virtual void visit(const StatementNode& node) = 0;
@@ -91,6 +95,25 @@ public:
 class ExpressionNode : public AstNode {
 public:
     explicit ExpressionNode(size_t pos): AstNode(pos) {}
+    virtual ~ExpressionNode() = default;
+
+    virtual void accept(NodeVisitor& v) const override = 0;
+};
+
+class ObjectNode : public ExpressionNode {
+public:
+    std::unordered_map<std::string, std::shared_ptr<ExpressionNode>> children;
+    explicit ObjectNode(size_t pos): ExpressionNode(pos) {}
+
+    void accept(NodeVisitor& v) const override {
+        v.visit(*this);
+    }
+};
+
+class ArrayNode : public ExpressionNode {
+public:
+    std::vector<std::shared_ptr<ExpressionNode>> children;
+    explicit ArrayNode(size_t pos): ExpressionNode(pos) {}
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
@@ -99,9 +122,9 @@ public:
 
 class LiteralNode : public ExpressionNode {
 public:
-    const json value;
+    const DataObject value;
 
-    explicit LiteralNode(std::string_view data_text, size_t pos): ExpressionNode(pos), value(json::parse(data_text)) {}
+    explicit LiteralNode(DataObject&& value, size_t pos): ExpressionNode(pos), value(std::move(value)) {}
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
@@ -111,20 +134,12 @@ public:
 class DataNode : public ExpressionNode {
 public:
     const std::string name;
-    const json::json_pointer ptr;
+    const DataPointer ptr;
 
-    static std::string convert_dot_to_ptr(std::string_view ptr_name) {
-        std::string result;
-        do {
-            std::string_view part;
-            std::tie(part, ptr_name) = string_view::split(ptr_name, '.');
-            result.push_back('/');
-            result.append(part.begin(), part.end());
-        } while (!ptr_name.empty());
-        return result;
-    }
-
-    explicit DataNode(std::string_view ptr_name, size_t pos): ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_ptr(ptr_name))) {}
+    explicit DataNode(
+        std::string_view ptr_name,
+        size_t pos
+    ): ExpressionNode(pos), name(ptr_name), ptr(DataPointer(this->name)) {}
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);

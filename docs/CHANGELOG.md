@@ -5,9 +5,20 @@
 ---
 # Changelog
 
-## [unreleased]
+This changelog is meant for people writing templates. For developers embedding iris, see the [API changelog](API changelog.md), which contains developer-specific changes that don't directly affect templates.
 
-## [v0.1.0]
+## Unreleased
+
+### Added
+
+* `set` expressions referencing variables inside an object or array is now legal (i.e. `{% set a = "value" %}{% set x = { "k": a } %}` no longer throws a JSON deserialization error) ([#2](https://codeberg.org/LunarWatcher/iris/issues/2)).
+* `set` expressions are now allowed to contain both math and function calls in theri values
+
+### Fixed
+
+* Malformed array expressions like `{% set x = ["a", "b" %}` now throw an understandable error instead of some generic shit ([violet#26](https://codeberg.org/LunarWatcher/violet/issues/26), [#1](https://codeberg.org/LunarWatcher/iris/issues/1))
+
+## v0.1.0
 
 Initial post-fork commit.
 
@@ -31,7 +42,3 @@ Migration guide:
   rg 'jiris' --files-with-matches | xargs sed -i 's/jiris/jinja/g'
   ```
 
-
-[unreleased]: https://codeberg.org/LunarWatcher/iris/compare/v0.1.0...master
-<!-- [v0.4.0]: https://codeberg.org/LunarWatcher/iris/compare/v0.3.0...v0.4.0 -->
-[v0.1.0]: https://codeberg.org/LunarWatcher/iris/releases/tag/v0.1.0
