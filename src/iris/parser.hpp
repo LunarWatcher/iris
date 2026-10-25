@@ -25,6 +25,8 @@ private:
     using OperatorStack = std::stack<std::shared_ptr<FunctionNode>>;
     using ObjectStack = std::stack<std::variant<std::shared_ptr<ObjectNode>, std::shared_ptr<ArrayNode>>>;
 
+    enum class LiteralBlockType { Array, Object };
+
     const ParserConfig& config;
 
     Lexer lexer;
@@ -51,7 +53,8 @@ private:
 
     std::string_view getDataText();
 
-    void add_operator(Arguments &arguments, OperatorStack &operator_stack);
+    void add_operator(Arguments &arguments, OperatorStack& operator_stack);
+    void processOperators(Arguments& arguments, std::stack<OperatorStack>& operatorStacks);
 
     void add_to_template_storage(const std::filesystem::path &path, std::string &template_name);
 
@@ -62,10 +65,7 @@ private:
     void pushExpressionNode(
         Arguments& args,
         std::shared_ptr<ExpressionNode>&& node,
-        std::stack<std::string>& objectKeys,
-        ObjectStack& objectStack,
-        size_t objectsInObjectStack,
-        bool valueCanBeKey = false
+        std::stack<LiteralBlockType>& objects
     );
 
     std::shared_ptr<ExpressionNode> parse_expression(Template &tmpl);

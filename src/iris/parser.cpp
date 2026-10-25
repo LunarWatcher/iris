@@ -102,45 +102,50 @@ bool Parser::parse_expression(Template &tmpl, Token::Kind closing) {
 void Parser::pushExpressionNode(
     Arguments &args,
     std::shared_ptr<ExpressionNode> &&node,
-    std::stack<std::string>& objectKeys,
-    ObjectStack& objectStack,
-    size_t objectsInObjectStack,
-    bool valueCanBeKey
+    std::stack<LiteralBlockType>& objects
 ) {
-    if (objectStack.empty()) {
+    if (objects.empty()) {
         args.emplace_back(node);
     } else {
-        auto &parentNode = objectStack.top();
-        if (std::holds_alternative<std::shared_ptr<ArrayNode>>(parentNode)) {
-            std::get<std::shared_ptr<ArrayNode>>(parentNode)
-                ->children.push_back(std::move(node));
+        auto &parentNode = args.back();
+        if (auto arrNode = std::dynamic_pointer_cast<ArrayNode>(parentNode)) {
+            arrNode->children.push_back(std::move(node));
         } else {
-            if (objectsInObjectStack > objectKeys.size()) {
-                if (auto litNode = std::dynamic_pointer_cast<LiteralNode>(node);
-                    valueCanBeKey && (
-                        // TODO: allow keys to be variables
-                        // (This doesn't work as long as DataObject
-                        // only allows string keys)
-                        litNode->value.is_string())) {
-                    objectKeys.push(litNode->value.serialize(false));
-                    return;
-                }
-                throw_parser_error("expected string key");
+            auto litNode = std::dynamic_pointer_cast<LiteralNode>(parentNode);
+            if (!litNode) {
+                throw_parser_error("bug: expression did not get key and early safeguards failed");
             }
-            auto k = objectKeys.top();
-            objectKeys.pop();
-            std::get<std::shared_ptr<ObjectNode>>(parentNode)
-                ->children.insert({std::move(k), std::move(node)});
+
+            if (!litNode->value.is_string()) {
+                throw_parser_error(
+                    std::format(
+                        "Expected object key of type string, but found {}",
+                        litNode->value.type()
+                    )
+                );
+            }
+
+            args.pop_back();
+
+            auto objNode = std::dynamic_pointer_cast<ObjectNode>(args.back());
+
+            if (objNode == nullptr) {
+                throw_parser_error("bug: expression expected ObjectNode but found unrelated type");
+            }
+            objNode->children[litNode->value.get<String>()] = std::move(node);
         }
     }
 }
 std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
     Arguments arguments;
-    OperatorStack operator_stack;
+    std::stack<OperatorStack> operator_stacks;
+    operator_stacks.push({}); // Top-level operator stack
 
-    std::stack<std::string> objectKeys;
-    std::stack<std::variant<std::shared_ptr<ObjectNode>, std::shared_ptr<ArrayNode>>> objectStack;
-    size_t objectsInObjectStack = 0;
+    std::stack<LiteralBlockType> objects;
+
+    // std::stack<std::string> objectKeys;
+    // std::stack<std::variant<std::shared_ptr<ObjectNode>, std::shared_ptr<ArrayNode>>> objectStack;
+    // size_t objectsInObjectStack = 0;
 
     while (tok.kind != Token::Kind::Eof) {
         // Literals
@@ -162,150 +167,184 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                 body.data() - tmpl.content.c_str()
             );
 
-            pushExpressionNode(arguments, node, objectKeys, objectStack, objectsInObjectStack, true);
+            arguments.push_back(node);
+            // pushExpressionNode(arguments, node, objectKeys, objectStack, objectsInObjectStack, true);
         } break;
         case Token::Kind::Number: {
-            if (objectStack.empty()) {
-                literal_start = tok.text;
+            literal_start = tok.text;
 
-                auto body = std::string(getDataText());
-                DataObject obj;
-                size_t ptr;
-                try {
-                    if (body.find('.') != std::string_view::npos) {
-                        auto value = std::stod(body, &ptr);
-                        if (ptr != body.size()) {
-                            throw_parser_error(
-                                std::format(
-                                    "Illegal double: {}",
-                                    body
-                                )
-                            );
-                        }
-                        obj = value;
-                    } else {
-                        auto value = std::stoll(body, &ptr);
-                        if (ptr != body.size()) {
-                            throw_parser_error(
-                                std::format(
-                                    "Illegal integer: {}",
-                                    body
-                                )
-                            );
-                        }
-                        obj = value;
+            auto body = std::string(getDataText());
+            DataObject obj;
+            size_t ptr;
+            try {
+                if (body.find('.') != std::string_view::npos) {
+                    auto value = std::stod(body, &ptr);
+                    if (ptr != body.size()) {
+                        throw_parser_error(
+                            std::format(
+                                "Illegal double: {}",
+                                body
+                            )
+                        );
                     }
-                } catch (const std::invalid_argument& e) {
-                    throw_parser_error(
-                        std::format(
-                            "{} could not be parsed as a legal number. Native error: {}",
-                            body,
-                            e.what()
-                        )
-                    );
-                } catch (const std::out_of_range& e) {
-                    throw_parser_error(
-                        std::format(
-                            "The number {} is too big to be represented by this type. Native error: {}",
-                            body,
-                            e.what()
-                        )
-                    );
+                    obj = value;
+                } else {
+                    auto value = std::stoll(body, &ptr);
+                    if (ptr != body.size()) {
+                        throw_parser_error(
+                            std::format(
+                                "Illegal integer: {}",
+                                body
+                            )
+                        );
+                    }
+                    obj = value;
                 }
-                arguments.emplace_back(
-                    std::make_shared<LiteralNode>(
-                        std::move(obj),
-                        body.data() - tmpl.content.c_str()
+            } catch (const std::invalid_argument& e) {
+                throw_parser_error(
+                    std::format(
+                        "{} could not be parsed as a legal number. Native error: {}",
+                        body,
+                        e.what()
+                    )
+                );
+            } catch (const std::out_of_range& e) {
+                throw_parser_error(
+                    std::format(
+                        "The number {} is too big to be represented by this type. Native error: {}",
+                        body,
+                        e.what()
                     )
                 );
             }
+            arguments.emplace_back(
+                std::make_shared<LiteralNode>(
+                    std::move(obj),
+                    body.data() - tmpl.content.c_str()
+                )
+            );
         } break;
         case Token::Kind::LeftBracket: { // [
-            if (objectStack.empty()) {
+            if (objects.empty()) {
+                // TODO: I think this is wrong?
                 literal_start = tok.text;
             }
-            objectStack.push(std::make_shared<ArrayNode>(literal_start.data() -
-                    tmpl.content.c_str()));
+            arguments.emplace_back(
+                std::make_shared<ArrayNode>(literal_start.data() - tmpl.content.c_str())
+            );
+            objects.push(LiteralBlockType::Array);
+            operator_stacks.push({});
         } break;
         case Token::Kind::LeftBrace: { // {
-            if (objectStack.empty()) {
+            if (objects.empty()) {
                 literal_start = tok.text;
             }
-            objectStack.push(std::make_shared<ObjectNode>(literal_start.data() -
+            arguments.emplace_back(std::make_shared<ObjectNode>(literal_start.data() -
                     tmpl.content.c_str()));
-            ++objectsInObjectStack;
+            objects.push(LiteralBlockType::Object);
+            operator_stacks.push({});
         } break;
         case Token::Kind::RightBracket: {
-            if (objectStack.empty()) {
+            if (objects.empty()) {
                 // TODO: what consequences does disabling this throw have? It's necessary for IDs to be referencable in
                 // dicts and arrays
                 // throw_parser_error("unexpected ']'");
                 goto break_loop;
+            } else if (objects.top() != LiteralBlockType::Array) {
+                throw_parser_error("unexpected ']'");
             }
 
-            auto node = objectStack.top();
-            objectStack.pop();
+            processOperators(arguments, operator_stacks);
+            operator_stacks.pop();
 
-            if (!std::holds_alternative<std::shared_ptr<ArrayNode>>(node)) {
-                throw_parser_error("Found } when ] was expected");
+            auto possibleArg = arguments.back();
+            auto arrNode = std::dynamic_pointer_cast<ArrayNode>(possibleArg);
+            arguments.pop_back();
+
+            if (arrNode == nullptr) {
+                arrNode = std::dynamic_pointer_cast<ArrayNode>(arguments.back());
+                if (arrNode == nullptr) {
+                    throw_parser_error(
+                        "Syntax error: expected ']', found invalid expression"
+                    );
+                }
+                arguments.pop_back();
+
+                arrNode->children.push_back(possibleArg);
             }
 
-            auto arrNode = std::get<std::shared_ptr<ArrayNode>>(node);
-
-            pushExpressionNode(arguments, arrNode, objectKeys, objectStack, objectsInObjectStack);
+            objects.pop();
+            pushExpressionNode(arguments, arrNode, objects);
         } break;
         case Token::Kind::RightBrace: {
-            if (objectStack.empty()) {
+            if (objects.empty()) {
                 // TODO: what consequences does disabling this throw have? It's necessary for IDs to be referencable in
                 // dicts and arrays
                 // throw_parser_error("unexpected '}'");
                 goto break_loop;
+            } else if (objects.top() != LiteralBlockType::Object) {
+                throw_parser_error("unexpected '}'");
             }
 
-            auto node = objectStack.top();
-            objectStack.pop();
+            processOperators(arguments, operator_stacks);
+            operator_stacks.pop();
 
-            --objectsInObjectStack;
+            auto possibleArg = arguments.back();
+            auto objNode = std::dynamic_pointer_cast<ObjectNode>(possibleArg);
+            arguments.pop_back();
 
-            if (!std::holds_alternative<std::shared_ptr<ObjectNode>>(node)) {
-                throw_parser_error("Found ] when } was expected");
+            if (objNode == nullptr) {
+                auto possibleKey = std::dynamic_pointer_cast<LiteralNode>(arguments.back());
+                if (possibleKey == nullptr) {
+                    throw_parser_error(
+                        "final entry in array is not a key-value pair"
+                    );
+                }
+                arguments.pop_back();
+                
+                objNode = std::dynamic_pointer_cast<ObjectNode>(arguments.back());
+                if (objNode == nullptr) {
+                    throw_parser_error(
+                        "Syntax error: expected '}', found invalid expression"
+                    );
+                }
+                arguments.pop_back();
+
+                objNode->children[possibleKey->value.get<String>()] = possibleArg;
             }
 
-            auto objNode = std::get<std::shared_ptr<ObjectNode>>(node);
-
-            pushExpressionNode(arguments, objNode, objectKeys, objectStack, objectsInObjectStack);
+            objects.pop();
+            pushExpressionNode(arguments, objNode, objects);
         } break;
         case Token::Kind::Id: {
-            if (!objectStack.empty()) {
-                pushExpressionNode(
-                    arguments,
-                    parse_expression(tmpl),
-                    objectKeys,
-                    objectStack,
-                    objectsInObjectStack
-                );
-                continue;
-            }
+            // if (!objectStack.empty()) {
+            //     pushExpressionNode(
+            //         arguments,
+            //         parse_expression(tmpl),
+            //         objectKeys,
+            //         objectStack,
+            //         objectsInObjectStack
+            //     );
+            //     continue;
+            // }
             get_peek_token();
 
             // Data Literal
             if (tok.text == static_cast<decltype(tok.text)>("true") ||
                 tok.text == static_cast<decltype(tok.text)>("false") ||
                 tok.text == static_cast<decltype(tok.text)>("null")) {
-                if (objectStack.empty()) {
-                    literal_start = tok.text;
-                    auto body = getDataText();
-                    DataObject root;
+                literal_start = tok.text;
+                auto body = getDataText();
+                DataObject root;
 
-                    if (tok.text == "false" || tok.text == "true") {
-                        root = tok.text == "true";
-                    } else {
-                        // Technically redundant, but this feels clearer
-                        root = nullptr;
-                    }
-                    arguments.emplace_back(std::make_shared<LiteralNode>(
-                            std::move(root), body.data() - tmpl.content.c_str()));
+                if (tok.text == "false" || tok.text == "true") {
+                    root = tok.text == "true";
+                } else {
+                    // Technically redundant, but this feels clearer
+                    root = nullptr;
                 }
+                arguments.emplace_back(std::make_shared<LiteralNode>(
+                        std::move(root), body.data() - tmpl.content.c_str()));
 
                 // Operator
             } else if (tok.text == "and" || tok.text == "or" || tok.text == "in" ||
@@ -427,6 +466,8 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
             auto function_node = std::make_shared<FunctionNode>(
                 operation, tok.text.data() - tmpl.content.c_str());
 
+
+            auto& operator_stack = operator_stacks.top();
             while (!operator_stack.empty() &&
                 ((operator_stack.top()->precedence > function_node->precedence) ||
                     (operator_stack.top()->precedence == function_node->precedence &&
@@ -438,13 +479,31 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
             operator_stack.emplace(function_node);
         } break;
         case Token::Kind::Comma: {
-            if (objectStack.empty()) {
+            if (objects.empty()) {
                 goto break_loop;
+            } else {
+                auto arg = arguments.back();
+                arguments.pop_back();
+                pushExpressionNode(arguments, std::move(arg), objects);
             }
         } break;
         case Token::Kind::Colon: {
-            if (objectStack.empty()) {
+            if (objects.empty()) {
                 throw_parser_error("unexpected ':'");
+            }
+            processOperators(arguments, operator_stacks);
+            const auto& back = arguments.back();
+            if (auto n = std::dynamic_pointer_cast<LiteralNode>(back); n != nullptr) {
+                if (!n->value.is_string()) {
+                    throw_parser_error("Object got non-string key");
+                }
+                const auto& obj = arguments.at(arguments.size() - 2);
+
+                if (std::dynamic_pointer_cast<ObjectNode>(obj) == nullptr) {
+                    throw_parser_error("Found ':' in non-object");
+                }
+            } else {
+                throw_parser_error("unexpected ':': failed to find key");
             }
         } break;
         case Token::Kind::LeftParen: {
@@ -512,13 +571,18 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
     }
 
  break_loop:
-    if (!objectStack.empty() || !objectKeys.empty()) {
+    if (!objects.empty()) {
         throw_parser_error("malformed expression (unterminated object or array)");
     }
 
-    while (!operator_stack.empty()) {
-        add_operator(arguments, operator_stack);
+    if (operator_stacks.size() != 1) {
+        throw_parser_error(
+            "Malformed expression: uncaught unterminated sub-block"
+        );
     }
+
+    processOperators(arguments, operator_stacks);
+    operator_stacks.pop();
 
     std::shared_ptr<ExpressionNode> expr;
     if (arguments.size() == 1) {
@@ -528,6 +592,13 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
         throw_parser_error("malformed expression");
     }
     return expr;
+}
+
+void Parser::processOperators(Arguments& arguments, std::stack<OperatorStack>& operatorStacks) {
+    auto& stack = operatorStacks.top();
+    while (!stack.empty()) {
+        add_operator(arguments, stack);
+    }
 }
 
 bool Parser::parse_statement(Template &tmpl, Token::Kind closing,

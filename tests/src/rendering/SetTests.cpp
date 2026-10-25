@@ -67,6 +67,13 @@ TEST_CASE("Set statements", "[set]") {
             );
             REQUIRE(result == R"({"k":"value"}<>value)");
         }
+        SECTION("With mafs") {
+            auto result = iris::render(
+                R"({% set x = { "k": 1 + 2 } %}{{ x }}<>{{ x.k }}<>{{ isNumber(x.k) }})",
+                iris::Object {}
+            );
+            REQUIRE(result == R"({"k":3}<>3<>true)");
+        }
     }
     SECTION("Array statements") {
         SECTION("Basic") {
