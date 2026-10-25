@@ -9,6 +9,8 @@ This page contains the changelog for the iris API. Not all releases will have an
 
 This changelog is meant for developers that embed iris in their software. For the changelog that concerns the actual templating language, see [the other changelog](CHANGELOG.md).
 
+{{ page.table_of_contents }}
+
 ## Unreleased
 
 ### Changed

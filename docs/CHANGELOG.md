@@ -7,6 +7,8 @@
 
 This changelog is meant for people writing templates. For developers embedding iris, see the [API changelog](API changelog.md), which contains developer-specific changes that don't directly affect templates.
 
+{{ page.table_of_contents }}
+
 ## Unreleased
 
 ### Added
