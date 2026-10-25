@@ -13,6 +13,8 @@ This changelog is meant for developers that embed iris in their software. For th
 
 ## Unreleased
 
+## v0.2.0
+
 ### Changed
 
 * The root object passed to the `render` functions must now be an object. This has not been explicitly enforced earlier, but I believe this is only handled indirectly through access into the object causing exceptions in the JSON parsing library (no attempt has been made to verify this because it isn't important).

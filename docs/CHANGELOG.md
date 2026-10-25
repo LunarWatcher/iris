@@ -11,6 +11,8 @@ This changelog is meant for people writing templates. For developers embedding i
 
 ## Unreleased
 
+## v0.2.0
+
 ### Added
 
 * `set` expressions referencing variables inside an object or array is now legal (i.e. `{% set a = "value" %}{% set x = { "k": a } %}` no longer throws a JSON deserialization error) ([#2](https://codeberg.org/LunarWatcher/iris/issues/2)).
