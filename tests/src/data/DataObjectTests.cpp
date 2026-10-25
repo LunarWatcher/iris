@@ -38,23 +38,32 @@ TEST_CASE("DataObject init") {
     }
 
     SECTION("Should be constructable with a vector") {
-        iris::DataObject o {
-            "a", "b", "c", 69
-        };
-        REQUIRE(o.is_array());
+        SECTION("Raw") {
+            iris::DataObject o {
+                "a", "b", "c", 69
+            };
+            REQUIRE(o.is_array());
 
-        // Note to self: { std::vector(...) } results in a nested vector, and I think I'm going to classify this as
-        // intentional for now. Would be nice if { std::vector } == ( std::vector ), but this is my first time using
-        // intializer lists, so I'm fine with this quirk
-        iris::DataObject o2 (
-            iris::Array {"a", "b", "c", 69}
-        );
-        REQUIRE(o2.is_array());
+            // Note to self: { std::vector(...) } results in a nested vector, and I think I'm going to classify this as
+            // intentional for now. Would be nice if { std::vector } == ( std::vector ), but this is my first time using
+            // intializer lists, so I'm fine with this quirk
+            iris::DataObject o2 (
+                iris::Array {"a", "b", "c", 69}
+            );
+            REQUIRE(o2.is_array());
 
-        INFO(o);
-        INFO(o2);
-        REQUIRE(o == o2);
-        REQUIRE(o.serialize() == R"(["a","b","c",69])");
+            INFO(o);
+            INFO(o2);
+            REQUIRE(o == o2);
+            REQUIRE(o.serialize() == R"(["a","b","c",69])");
+        }
+
+        SECTION("Unrelated vector types") {
+            std::vector<std::string> values = { "a", "b", "c" };
+            iris::DataObject o(values);
+            REQUIRE(o.is_array());
+            REQUIRE(o.serialize() == R"(["a","b","c"])");
+        }
     }
 
     SECTION("Should be constructable with an object") {

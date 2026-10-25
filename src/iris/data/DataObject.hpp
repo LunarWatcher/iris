@@ -77,6 +77,16 @@ public:
     template <std::integral T>
     DataObject(T value) : data((Int) value) {}
 
+    template <typename T>
+    DataObject(const std::vector<T>& list) {
+        auto v = std::make_shared<Array>();
+        v->reserve(list.size());
+        for (auto it : list) {
+            v->push_back(DataObject(it));
+        }
+        data = v;
+    }
+
     ~DataObject();
 
     DataObject& operator=(const DataObject& other);
@@ -90,6 +100,7 @@ public:
     bool operator!=(const DataObject& other) const;
 
     DataObject(std::initializer_list<DataObject> list);
+    
     // TODO: because of how the objects are constructed here, there's no way to tell a list from an object, so automatic
     // resolution for this constructor fails
     // DataObject(std::initializer_list<Object::value_type> list) : DataObject(Object(list)) {}
