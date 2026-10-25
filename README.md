@@ -3,24 +3,14 @@
 Iris is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, and comments you need, nested and combined as you like. Here is what it looks like:
 
 ```cpp
-json data;
-data["name"] = "world";
+iris::DataObject obj = iris::Object {
+    {"name", "world"},
+};
 
 iris::render("Hello {{ name }}!", data); // Returns "Hello world!"
 ```
 
 Iris is a fork of [inja](https://github.com/pantor/inja/) with stronger guarantees against AI slop, as well as changes meant to benefit [violet](https://codeberg.org/LunarWatcher/violet) and whatever else in the general anti-AI ecosystem could need proper templates beyond what something more simple like mustache can provide.
-
-## Integration
-
-Iris uses `nlohmann/json.hpp` (>= v3.8.0) as its single dependency, so make sure it can be included from `iris.hpp`. Note that iris uses a forked version until the dependency can be shed in favour of using raw stdlib alternatives. The forked version was made prior to the sloppification of nlohmann/json. The forked version can be downloaded from https://github.com/LunarWatcher/json
-
-```cpp
-#include <iris.hpp>
-
-// Just for convenience
-using namespace iris;
-```
 
 ## Tutorial
 
@@ -28,11 +18,12 @@ This tutorial will give you an idea how to use iris. It will explain the most im
 
 ### Template Rendering
 
-The basic template rendering takes a template as a `std::string` and a `json` object for all data. It returns the rendered template as an `std::string`.
+The basic template rendering takes a template as a `std::string` and an `iris::DataObject` for all data. It returns the rendered template as an `std::string`.
 
 ```cpp
-json data;
-data["name"] = "world";
+iris::DataObject obj = iris::Object {
+    {"name", "world"},
+};
 
 render("Hello {{ name }}!", data); // Returns std::string "Hello world!"
 render_to(std::cout, "Hello {{ name }}!", data); // Writes "Hello world!" to stream
@@ -42,7 +33,7 @@ For more advanced usage, an environment is recommended.
 ```cpp
 Environment env;
 
-// Render a string with json data
+// Render a string with data
 std::string result = env.render("Hello {{ name }}!", data); // "Hello world!"
 
 // Or directly read a template file
@@ -52,13 +43,11 @@ std::string result = env.render(temp, data); // "Hello world!"
 data["name"] = "Iris";
 std::string result = env.render(temp, data); // "Hello Iris!"
 
-// Or read the template file (and/or the json file) directly from the environment
+// Or read the template file directly from the environment
 result = env.render_file("./templates/greeting.txt", data);
-result = env.render_file_with_json_file("./templates/greeting.txt", "./data.json");
 
 // Or write a rendered template file
 env.write(temp, data, "./result.txt");
-env.write_with_json_file("./templates/greeting.txt", "./data.json", "./result.txt");
 ```
 
 The environment class can be configured to your needs.
@@ -84,7 +73,7 @@ env.set_html_autoescape(true); // Perform HTML escaping on all strings
 
 Variables are rendered within the `{{ ... }}` expressions.
 ```cpp
-json data;
+iris::DataObject obj = iris::Object {};
 data["neighbour"] = "Peter";
 data["guests"] = {"Jeff", "Tom", "Patrick"};
 data["time"]["start"] = 16;
@@ -249,7 +238,7 @@ render("{{ [\"B\", \"A\", \"C\"] | sort | join(\",\") }}", data); // "A,B,C"
 
 ### Callbacks
 
-You can create your own and more complex functions with callbacks. These are implemented with `std::function`, so you can for example use C++ lambdas. Iris `Arguments` are a vector of json pointers.
+You can create your own and more complex functions with callbacks. These are implemented with `std::function`, so you can for example use C++ lambdas. Iris `Arguments` are a vector of DataObject pointers.
 ```cpp
 Environment env;
 
@@ -269,7 +258,7 @@ env.render("{{ double(16) }}", data); // "32"
 
 // Iris falls back to variadic callbacks if the number of expected arguments is omitted.
 env.add_callback("argmax", [](Arguments& args) {
-  auto result = std::max_element(args.begin(), args.end(), [](const json* a, const json* b) { return *a < *b;});
+  auto result = std::max_element(args.begin(), args.end(), [](const iris::DataObject* a, const iris::DataObject* b) { return *a < *b;});
   return std::distance(args.begin(), result);
 });
 env.render("{{ argmax(4, 2, 6) }}", data); // "2"
@@ -349,7 +338,7 @@ Stripping behind a statement or expression also removes any newlines.
 
 Templates are frequently used to creat HTML pages. Source data that contains
 characters that have meaning within HTML (like <. >, &) needs to be escaped.
-It is often inconvenient to perform such escaping within the JSON data. With `Environment::set_html_autoescape(true)`, Iris can be configured to
+It is often inconvenient to perform such escaping within the data. With `Environment::set_html_autoescape(true)`, Iris can be configured to
 HTML escape each and every string created.
 
 ### Comments
