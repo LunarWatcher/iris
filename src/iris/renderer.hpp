@@ -44,6 +44,7 @@ class Renderer : public NodeVisitor {
 private:
     using Op = FunctionStorage::Operation;
     std::stack<SourceLocation> importStack;
+    void* udata;
 
     const RenderConfig config;
     const TemplateStorage& template_storage;
@@ -179,7 +180,8 @@ public:
     explicit Renderer(
         const RenderConfig &config,
         const TemplateStorage &template_storage,
-        const FunctionStorage &function_storage
+        const FunctionStorage &function_storage,
+        void* udata
     );
 
     void render_to(

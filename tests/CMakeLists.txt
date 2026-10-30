@@ -23,6 +23,8 @@ add_executable(tests
 
     src/rendering/stack/RendererStackTests.cpp
 
+    src/rendering/udata/UdataTests.cpp
+
     src/stdlib/ExistsTests.cpp
 )
 

@@ -11,8 +11,8 @@
 namespace iris {
 
 using Arguments = std::vector<const DataObject*>;
-using CallbackFunction = std::function<DataObject(Arguments& args)>;
-using VoidCallbackFunction = std::function<void(Arguments& args)>;
+using CallbackFunction = std::function<DataObject(Arguments& args, void*)>;
+using VoidCallbackFunction = std::function<void(Arguments& args, void*)>;
 
 /*!
  * \brief Class for builtin functions and user-defined callbacks.

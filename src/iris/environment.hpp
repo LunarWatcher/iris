@@ -17,6 +17,9 @@
 
 namespace iris {
 
+using NonUDataCallbackFunction = std::function<DataObject(Arguments& args)>;
+using NonUDataVoidCallbackFunction = std::function<void(Arguments& args)>;
+
 /*!
  * \brief Class for changing the configuration.
  */
@@ -83,32 +86,50 @@ public:
     std::string render(
         std::string_view input,
         const DataObject& data,
+        void* udata = nullptr,
         const std::string& filePathOrIdentifier = ""
     );
-
-    std::string render(const Template& tmpl, const DataObject& data);
-
-    std::string render_file(const std::filesystem::path& filename, const DataObject& data);
+    std::string render(
+        const Template& tmpl,
+        const DataObject& data,
+        void* udata = nullptr
+    );
+    std::string render_file(
+        const std::filesystem::path& filename,
+        const DataObject& data,
+        void* udata = nullptr
+    );
+    std::ostream& render_to(
+        std::ostream& os,
+        const Template& tmpl,
+        const DataObject& data,
+        void* udata = nullptr
+    );
+    std::ostream& render_to(
+        std::ostream& os,
+        const std::string_view input,
+        const DataObject& data,
+        void* udata = nullptr,
+        const std::string& filePathOrIdentifier = ""
+    );
 
     void write(const std::filesystem::path& filename, const DataObject& data, const std::string& filename_out);
 
     void write(const Template& temp, const DataObject& data, const std::string& filename_out);
 
-    std::ostream& render_to(std::ostream& os, const Template& tmpl, const DataObject& data);
-
-    std::ostream& render_to(std::ostream& os, const std::string_view input, const DataObject& data);
-
     std::string load_file(const std::string& filename);
 
+
+    // TODO: I tried and failed to turn all these into a template. As far as I can tell, C++ compilers may be too dumb
+    // to match against an std::function<...> type. Using a raw C type didn't work either, it failed to link against
+    // both vararg and hard-coded types.
+    // There's 8 of these bastards though, it would be nice if we could collapse them a bit. With templates, we could in
+    // theory also allow static_cast on the environment side. Or would that cause errors that are too non-transparent to
+    // the developer?
     /*!
       @brief Adds a variadic callback
     */
     void add_callback(const std::string& name, const CallbackFunction& callback);
-
-    /*!
-      @brief Adds a variadic void callback
-    */
-    void add_void_callback(const std::string& name, const VoidCallbackFunction& callback);
 
     /*!
       @brief Adds a callback with given number or arguments
@@ -116,9 +137,34 @@ public:
     void add_callback(const std::string& name, int num_args, const CallbackFunction& callback);
 
     /*!
+      @brief Adds a variadic void callback
+    */
+    void add_void_callback(const std::string& name, const VoidCallbackFunction& callback);
+
+    /*!
       @brief Adds a void callback with given number or arguments
     */
     void add_void_callback(const std::string& name, int num_args, const VoidCallbackFunction& callback);
+
+    /*!
+      @brief Adds a variadic callback
+    */
+    void add_callback(const std::string& name, const NonUDataCallbackFunction& callback);
+
+    /*!
+      @brief Adds a callback with given number or arguments
+    */
+    void add_callback(const std::string& name, int num_args, const NonUDataCallbackFunction& callback);
+
+    /*!
+      @brief Adds a variadic void callback
+    */
+    void add_void_callback(const std::string& name, const NonUDataVoidCallbackFunction& callback);
+
+    /*!
+      @brief Adds a void callback with given number or arguments
+    */
+    void add_void_callback(const std::string& name, int num_args, const NonUDataVoidCallbackFunction& callback);
 
     /** Includes a template with a given name into the environment.
      * Then, a template can be rendered in another template using the

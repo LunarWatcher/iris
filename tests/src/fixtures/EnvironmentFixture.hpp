@@ -32,7 +32,34 @@ struct EnvironmentFixture {
         return env.render(
             tmpl,
             obj,
+            nullptr,
             identifier
+        );
+    }
+
+    std::string renderWithUdata(
+        const std::string& tmpl,
+        void* udata,
+        const iris::DataObject& obj = iris::Object {},
+        const std::string& identifier = ""
+    ) {
+        return env.render(
+            tmpl,
+            obj,
+            udata,
+            identifier
+        );
+    }
+
+    std::string renderWithUdata(
+        iris::Template& tmpl,
+        void* udata,
+        const iris::DataObject& obj = iris::Object {}
+    ) {
+        return env.render(
+            tmpl,
+            obj,
+            udata
         );
     }
 
@@ -45,6 +72,17 @@ struct EnvironmentFixture {
         const iris::DataObject& obj = iris::Object {}
     ) {
         return env.render_file(resolvePath(filename), obj);
+    }
+    std::string renderFileWithUData(
+        const std::string& filename,
+        void* udata,
+        const iris::DataObject& obj = iris::Object {}
+    ) {
+        return env.render_file(resolvePath(filename), obj, udata);
+    }
+
+    iris::Template parseString(const std::string& content, const std::string& identifier = "") {
+        return env.parse(content, identifier);
     }
 
     iris::Template parseFile(const std::string& filename) {

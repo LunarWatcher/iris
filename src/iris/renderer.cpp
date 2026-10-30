@@ -43,7 +43,12 @@ void Renderer::visit(const SetStatementNode &node) {
     additional_data[ptr] = *eval_expression_list(node.expression);
 }
 void Renderer::visit(const IncludeStatementNode &node) {
-    auto sub_renderer = Renderer(config, template_storage, function_storage);
+    auto sub_renderer = Renderer(
+        config,
+        template_storage,
+        function_storage,
+        udata
+    );
     const auto included_template_it = template_storage.find(node.file);
     if (included_template_it != template_storage.end()) {
         sub_renderer.render_to(
@@ -60,8 +65,10 @@ void Renderer::visit(const IncludeStatementNode &node) {
 Renderer::Renderer(
     const RenderConfig &config,
     const TemplateStorage &template_storage,
-    const FunctionStorage &function_storage
-) : config(config),
+    const FunctionStorage &function_storage,
+    void* udata
+) : udata(udata),
+    config(config),
     template_storage(template_storage),
     function_storage(function_storage) {}
 
@@ -227,7 +234,7 @@ void Renderer::visit(const DataNode &node) {
             if (function_data.operation == FunctionStorage::Operation::Callback) {
                 Arguments empty_args{};
                 const auto value =
-                    std::make_shared<DataObject>(function_data.callback(empty_args));
+                    std::make_shared<DataObject>(function_data.callback(empty_args, udata));
                 data_tmp_stack.push_back(value);
                 data_eval_stack.push(value.get());
             } else {
@@ -501,7 +508,7 @@ void Renderer::visit(const FunctionNode &node) {
     case Op::Callback: {
         try {
         auto args = get_argument_vector(node);
-        make_result(node.callback(args));
+        make_result(node.callback(args, udata));
         } catch (const ContextlessRenderError& err) {
             throw_renderer_error(
                 err.message,

@@ -22,7 +22,10 @@ This changelog is meant for developers that embed iris in their software. For th
   * This is used in error handling to make things clearer
 * Added `importStack` and `filePathOrIdentifier` to `SourceLocation`
   * This allows implementing applications to create stacktraces
-* Add explicit structured data on whether an `iris::IrisError` is a renderer error, parse error, or general error (happens outside the renderer and parser)
+* Added explicit structured data on whether an `iris::IrisError` is a renderer error, parse error, or general error (happens outside the renderer and parser)
+* Added support for vararg functions to accept 0 arguments
+  * This is largely going to be useful with the new udata setup
+* Added support for rendering with user-defined data. See the docs for custom callbacks for more info.
 
 ### Removed
 

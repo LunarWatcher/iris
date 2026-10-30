@@ -73,6 +73,7 @@ Template Environment::parse_file(const std::filesystem::path& filename) {
 std::string Environment::render(
     std::string_view input,
     const DataObject& data,
+    void* udata,
     const std::string& filePathOrIdentifier
 ) {
     if (!data.is_object()) {
@@ -80,27 +81,35 @@ std::string Environment::render(
             "The root data object must be an object!"
         );
     }
-    return render(parse(input, filePathOrIdentifier), data);
+    return render(parse(input, filePathOrIdentifier), data, udata);
 }
 
-std::string Environment::render(const Template& tmpl, const DataObject& data) {
+std::string Environment::render(
+    const Template& tmpl,
+    const DataObject& data,
+    void* udata
+) {
     if (!data.is_object()) {
         throw DataError(
             "The root data object must be an object!"
         );
     }
     std::stringstream os;
-    render_to(os, tmpl, data);
+    render_to(os, tmpl, data, udata);
     return os.str();
 }
 
-std::string Environment::render_file(const std::filesystem::path& filename, const DataObject& data) {
+std::string Environment::render_file(
+    const std::filesystem::path& filename,
+    const DataObject& data,
+    void* udata
+) {
     if (!data.is_object()) {
         throw DataError(
             "The root data object must be an object!"
         );
     }
-    return render(parse_file(filename), data);
+    return render(parse_file(filename), data, udata);
 }
 
 void Environment::write(const std::filesystem::path& filename, const DataObject& data, const std::string& filename_out) {
@@ -115,23 +124,44 @@ void Environment::write(const Template& temp, const DataObject& data, const std:
     file.close();
 }
 
-std::ostream& Environment::render_to(std::ostream& os, const Template& tmpl, const DataObject& data) {
+std::ostream& Environment::render_to(
+    std::ostream& os,
+    const Template& tmpl,
+    const DataObject& data,
+    void* udata
+) {
     if (!data.is_object()) {
         throw DataError(
             "The root data object must be an object!"
         );
     }
-    Renderer renderer(render_config, template_storage, function_storage);
+    Renderer renderer(
+        render_config,
+        template_storage,
+        function_storage,
+        udata
+    );
     renderer.render_to(os, tmpl, std::stack<SourceLocation>{}, data);
     return os;
 }
 
-std::ostream& Environment::render_to(std::ostream& os, const std::string_view input, const DataObject& data) {
-    return render_to(os, parse(input), data);
+std::ostream& Environment::render_to(
+    std::ostream& os,
+    const std::string_view input,
+    const DataObject& data,
+    void* udata,
+    const std::string& filePathOrIdentifier
+) {
+    return render_to(os, parse(input, filePathOrIdentifier), data, udata);
 }
 
 std::string Environment::load_file(const std::string& filename) {
-    const Parser parser(parser_config, lexer_config, template_storage, function_storage);
+    const Parser parser(
+        parser_config,
+        lexer_config,
+        template_storage,
+        function_storage
+    );
     return Parser::load_file(input_path / filename);
 }
 
@@ -148,11 +178,32 @@ void Environment::add_callback(const std::string& name, int num_args, const Call
 }
 
 void Environment::add_void_callback(const std::string& name, int num_args, const VoidCallbackFunction& callback) {
-    function_storage.add_callback(name, num_args, [callback](Arguments& args) {
+    function_storage.add_callback(name, num_args, [callback](Arguments& args, void* udata) {
+        callback(args, udata);
+        return DataObject();
+    });
+}
+
+void Environment::add_callback(const std::string& name, const NonUDataCallbackFunction& callback) {
+    add_callback(name, -1, callback);
+}
+void Environment::add_callback(const std::string& name, int num_args, const NonUDataCallbackFunction& callback) {
+    function_storage.add_callback(name, num_args, [callback](Arguments& args, void*) {
+        return callback(args);
+    });
+}
+
+void Environment::add_void_callback(const std::string& name, const NonUDataVoidCallbackFunction& callback) {
+    add_void_callback(name, -1, callback);
+}
+
+void Environment::add_void_callback(const std::string& name, int num_args, const NonUDataVoidCallbackFunction& callback) {
+    function_storage.add_callback(name, num_args, [callback](Arguments& args, void*) {
         callback(args);
         return DataObject();
     });
 }
+
 
 void Environment::include_template(const std::string& name, const Template& tmpl) {
     template_storage[name] = tmpl;
@@ -169,7 +220,12 @@ std::string iris::render(
     const DataObject& data,
     const std::string& filePathOrIdentifier
 ) {
-    return Environment().render(input, data, filePathOrIdentifier);
+    return Environment().render(
+        input,
+        data,
+        nullptr,
+        filePathOrIdentifier
+    );
 }
 
 void iris::render_to(std::ostream& os, std::string_view input, const DataObject& data) {
