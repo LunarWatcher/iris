@@ -339,6 +339,10 @@ void Renderer::visit(const FunctionNode &node) {
     } break;
     case Op::Capitalize: {
         auto result = get_arguments<1>(node)[0]->get<String>();
+        if (result.size() == 0) {
+            make_result("");
+            return;
+        }
         result[0] = static_cast<char>(::toupper(result[0]));
         std::transform(result.begin() + 1, result.end(), result.begin() + 1,
             [](char c) { return static_cast<char>(::tolower(c)); });
@@ -472,8 +476,15 @@ void Renderer::visit(const FunctionNode &node) {
         make_result(get_arguments<1>(node)[0]->is_string());
     } break;
     case Op::Callback: {
+        try {
         auto args = get_argument_vector(node);
         make_result(node.callback(args));
+        } catch (const ContextlessRenderError& err) {
+            throw_renderer_error(
+                err.message,
+                node
+            );
+        }
     } break;
     case Op::Super: {
         const auto args = get_argument_vector(node);
@@ -517,12 +528,7 @@ void Renderer::visit(const FunctionNode &node) {
         std::string sep;
         for (const auto &value : args[0]->get<Array>()) {
             os << sep;
-            if (value.is_string()) {
-                os << value.get<std::string>(); // otherwise the value is surrounded
-                // with ""
-            } else {
-                os << value.serialize();
-            }
+            os << value.serialize();
             sep = separator;
         }
         make_result(os.str());

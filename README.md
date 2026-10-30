@@ -12,20 +12,6 @@ iris::render("Hello {{ name }}!", data); // Returns "Hello world!"
 
 Iris is a fork of [inja](https://github.com/pantor/inja/) with stronger guarantees against AI slop, as well as changes meant to benefit [violet](https://codeberg.org/LunarWatcher/violet) and whatever else in the general anti-AI ecosystem could need proper templates beyond what something more simple like mustache can provide.
 
-## Integration
-
-The suggested way to use iris is with FetchContent:
-```cmake
-include(FetchContent)
-FetchContent_Declare(iris
-    GIT_REPOSITORY https://codeberg.org/LunarWatcher/iris
-    GIT_TAG v0.2.0
-)
-FetchContent_MakeAvailable(iris)
-# ...
-target_include_libraries(your-target PUBLIC iris::iris)
-```
-
 ## Tutorial
 
 This tutorial will give you an idea how to use iris. It will explain the most important concepts and give practical advices using examples and executable code. Beside this tutorial, you may check out the [documentation](https://lunarwatcher.codeberg.page/iris).
@@ -250,49 +236,6 @@ render("Hello {{ neighbour | upper }}!", data); // "Hello PETER!"
 render("{{ [\"B\", \"A\", \"C\"] | sort | join(\",\") }}", data); // "A,B,C"
 ```
 
-### Callbacks
-
-You can create your own and more complex functions with callbacks. These are implemented with `std::function`, so you can for example use C++ lambdas. Iris `Arguments` are a vector of DataObject pointers.
-```cpp
-Environment env;
-
-/*
- * Callbacks are defined by its:
- * - name,
- * - (optional) number of arguments,
- * - callback function.
- */
-env.add_callback("double", 1, [](Arguments& args) {
-	int number = args.at(0)->get<int>(); // Adapt the index and type of the argument
-	return 2 * number;
-});
-
-// You can then use a callback like a regular function
-env.render("{{ double(16) }}", data); // "32"
-
-// Iris falls back to variadic callbacks if the number of expected arguments is omitted.
-env.add_callback("argmax", [](Arguments& args) {
-  auto result = std::max_element(args.begin(), args.end(), [](const iris::DataObject* a, const iris::DataObject* b) { return *a < *b;});
-  return std::distance(args.begin(), result);
-});
-env.render("{{ argmax(4, 2, 6) }}", data); // "2"
-env.render("{{ argmax(0, 2, 6, 8, 3) }}", data); // "3"
-
-// A callback without argument can be used like a dynamic variable:
-std::string greet = "Hello";
-env.add_callback("double-greetings", 0, [greet](Arguments args) {
-	return greet + " " + greet + "!";
-});
-env.render("{{ double-greetings }}", data); // "Hello Hello!"
-```
-You can also add a void callback without return variable, e.g. for debugging:
-```cpp
-env.add_void_callback("log", 1, [greet](Arguments args) {
-	std::cout << "logging: " << args[0] << std::endl;
-});
-env.render("{{ log(neighbour) }}", data); // Prints nothing to result, only to cout...
-```
-
 ### Template Inheritance
 
 Template inheritance allows you to build a base *skeleton* template that contains all the common elements and defines blocks that child templates can override. Lets show an example: The base template
@@ -369,4 +312,4 @@ Iris uses exceptions to handle ill-formed template input. However, exceptions ca
 
 ## Supported compilers
 
-Iris requires C++20. This should be supported by most distros.
+Iris requires C++23. 

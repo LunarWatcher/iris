@@ -13,6 +13,12 @@ This changelog is meant for developers that embed iris in their software. For th
 
 ## Unreleased
 
+## v0.3.0
+
+### Added
+
+* `iris::CallbackError`, which should be thrown by end-user applications in custom callbacks.
+
 ## v0.2.0
 
 ### Changed

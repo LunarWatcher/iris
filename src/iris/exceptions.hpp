@@ -33,6 +33,17 @@ struct ContextlessRenderError : public IrisError {
     ) : IrisError(type, message) {}
 };
 
+/**
+ * Throw this exception to associate an error in a callback with error information related to the calling iris source
+ * code.
+ */
+struct CallbackError : public ContextlessRenderError {
+    
+    explicit CallbackError(
+        const std::string& message
+    ) : ContextlessRenderError("callback", message) {}
+};
+
 struct ParserError : public IrisError {
     explicit ParserError(const std::string& message, SourceLocation location): IrisError("parser_error", message, location) {}
 };

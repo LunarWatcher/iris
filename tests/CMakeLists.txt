@@ -3,6 +3,8 @@ add_executable(tests
 
     src/data/DataObjectTests.cpp
 
+    src/error-handling/CallbackErrorTests.cpp
+
     src/fixtures/FunctionFixtureTests.cpp
 
     src/rendering/FileLoadingTests.cpp
