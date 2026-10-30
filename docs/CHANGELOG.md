@@ -18,6 +18,7 @@ v0.3.0 is primarily a technical release.
 ### Added
 
 * Implementations using iris can now produce better errors. Iris itself also produces slightly more useful errors by default by pointing at the source file the error was caused in, if the information is available.
+* Varadic functions (largely user-defined functions) now allow 0 arguments to be passed
 
 ### Fixed
 
