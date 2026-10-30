@@ -22,6 +22,7 @@ This changelog is meant for developers that embed iris in their software. For th
   * This is used in error handling to make things clearer
 * Added `importStack` and `filePathOrIdentifier` to `SourceLocation`
   * This allows implementing applications to create stacktraces
+* Add explicit structured data on whether an `iris::IrisError` is a renderer error, parse error, or general error (happens outside the renderer and parser)
 
 ### Removed
 
