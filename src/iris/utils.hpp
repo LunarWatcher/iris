@@ -30,7 +30,10 @@ inline bool starts_with(std::string_view view, std::string_view prefix) {
 }
 } // namespace string_view
 
-inline SourceLocation get_source_location(std::string_view content, size_t pos) {
+inline SourceLocation get_source_location(
+    std::string_view content,
+    size_t pos
+) {
     // Get line and offset position (starts at 1:1)
     auto sliced = string_view::slice(content, 0, pos);
     const std::size_t last_newline = sliced.rfind('\n');
@@ -50,7 +53,10 @@ inline SourceLocation get_source_location(std::string_view content, size_t pos) 
         count_lines += 1;
     }
 
-    return {count_lines + 1, sliced.length() - last_newline};
+    return {
+        count_lines + 1,
+        sliced.length() - last_newline
+    };
 }
 
 inline void replace_substring(std::string& s, const std::string& f, const std::string& t) {

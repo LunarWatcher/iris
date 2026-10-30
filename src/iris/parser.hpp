@@ -29,6 +29,8 @@ private:
 
     const ParserConfig& config;
 
+    static inline thread_local Template* currTemplate = nullptr;
+
     Lexer lexer;
     TemplateStorage& template_storage;
     const FunctionStorage& function_storage;

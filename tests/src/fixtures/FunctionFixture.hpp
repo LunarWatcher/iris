@@ -1,13 +1,13 @@
 #pragma once
 
 #include "catch2/catch_test_macros.hpp"
+#include "fixtures/EnvironmentFixture.hpp"
 #include "iris/exceptions.hpp"
 #include <iris/iris.hpp>
 
 namespace tests {
 
-struct FunctionFixture {
-    iris::Environment env;
+struct FunctionFixture : public EnvironmentFixture {
 
     FunctionFixture() {
         env.add_callback("add", 2, [](iris::Arguments& args) {
@@ -25,13 +25,6 @@ struct FunctionFixture {
                 throw iris::CallbackError("This is a CallbackError");
             }
         });
-    }
-
-    std::string render(
-        const std::string& tmpl,
-        const iris::DataObject& obj = iris::Object {}
-    ) {
-        return env.render(tmpl, obj);
     }
 };
 

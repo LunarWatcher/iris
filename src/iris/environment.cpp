@@ -52,29 +52,35 @@ void Environment::set_html_autoescape(bool will_escape) {
     render_config.html_autoescape = will_escape;
 }
 
-Template Environment::parse(std::string_view input) {
+Template Environment::parse(std::string_view input, const std::string& filePathOrIdentifier) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
-    return parser.parse(input, input_path);
+    return parser.parse(
+        input,
+        filePathOrIdentifier
+    );
 }
 
-Template Environment::parse_template(const std::filesystem::path& filename) {
+Template Environment::parse_file(const std::filesystem::path& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
-    auto result = Template(Parser::load_file(input_path / filename));
+    auto result = Template(
+        Parser::load_file(input_path / filename),
+        input_path / filename
+    );
     parser.parse_into_template(result, (input_path / filename).string());
     return result;
 }
 
-Template Environment::parse_file(const std::filesystem::path& filename) {
-    return parse_template(filename);
-}
-
-std::string Environment::render(std::string_view input, const DataObject& data) {
+std::string Environment::render(
+    std::string_view input,
+    const DataObject& data,
+    const std::string& filePathOrIdentifier
+) {
     if (!data.is_object()) {
         throw DataError(
             "The root data object must be an object!"
         );
     }
-    return render(parse(input), data);
+    return render(parse(input, filePathOrIdentifier), data);
 }
 
 std::string Environment::render(const Template& tmpl, const DataObject& data) {
@@ -94,7 +100,7 @@ std::string Environment::render_file(const std::filesystem::path& filename, cons
             "The root data object must be an object!"
         );
     }
-    return render(parse_template(filename), data);
+    return render(parse_file(filename), data);
 }
 
 void Environment::write(const std::filesystem::path& filename, const DataObject& data, const std::string& filename_out) {
@@ -116,7 +122,7 @@ std::ostream& Environment::render_to(std::ostream& os, const Template& tmpl, con
         );
     }
     Renderer renderer(render_config, template_storage, function_storage);
-    renderer.render_to(os, tmpl, data);
+    renderer.render_to(os, tmpl, std::stack<SourceLocation>{}, data);
     return os;
 }
 
@@ -158,8 +164,12 @@ void Environment::set_include_callback(const std::function<Template(const std::f
 
 }
 
-std::string iris::render(std::string_view input, const DataObject& data) {
-    return Environment().render(input, data);
+std::string iris::render(
+    std::string_view input,
+    const DataObject& data,
+    const std::string& filePathOrIdentifier
+) {
+    return Environment().render(input, data, filePathOrIdentifier);
 }
 
 void iris::render_to(std::ostream& os, std::string_view input, const DataObject& data) {

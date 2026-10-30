@@ -17,7 +17,15 @@ This changelog is meant for developers that embed iris in their software. For th
 
 ### Added
 
-* `iris::CallbackError`, which should be thrown by end-user applications in custom callbacks.
+* Added `iris::CallbackError`, which should be thrown by end-user applications in custom callbacks.
+* Added an optional argument for adding a filename to templates rendered without a file
+  * This is used in error handling to make things clearer
+* Added `importStack` and `filePathOrIdentifier` to `SourceLocation`
+  * This allows implementing applications to create stacktraces
+
+### Removed
+
+* Removed `parse_template`. Use `parse_file` instead, it's completely identical.
 
 ## v0.2.0
 

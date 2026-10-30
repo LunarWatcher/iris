@@ -43,6 +43,7 @@ inline std::string htmlescape(const std::string& data) {
 class Renderer : public NodeVisitor {
 private:
     using Op = FunctionStorage::Operation;
+    std::stack<SourceLocation> importStack;
 
     const RenderConfig config;
     const TemplateStorage& template_storage;
@@ -71,6 +72,10 @@ private:
 
     const std::shared_ptr<DataObject>
     eval_expression_list(const ExpressionListNode &expression_list);
+
+    std::stack<SourceLocation> appendSourceLocStack(
+        const AstNode* node
+    );
 
     void throw_renderer_error(const std::string &message, const AstNode &node);
 
@@ -180,6 +185,7 @@ public:
     void render_to(
         std::ostream &os,
         const Template &tmpl,
+        const std::stack<SourceLocation>& importStack,
         const DataObject &data,
         DataObject *loop_data = nullptr
     );

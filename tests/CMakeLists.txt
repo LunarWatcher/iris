@@ -7,6 +7,8 @@ add_executable(tests
 
     src/fixtures/FunctionFixtureTests.cpp
 
+    src/parser/ParserMetadataTests.cpp
+
     src/rendering/FileLoadingTests.cpp
     src/rendering/ForLoopTests.cpp
     src/rendering/FuncCallTests.cpp
@@ -18,6 +20,8 @@ add_executable(tests
     src/rendering/errors/InvalidDataPointerTests.cpp
     src/rendering/errors/InvalidLiteralErrorTests.cpp
     src/rendering/errors/InvalidStatementErrorTests.cpp
+
+    src/rendering/stack/RendererStackTests.cpp
 
     src/stdlib/ExistsTests.cpp
 )

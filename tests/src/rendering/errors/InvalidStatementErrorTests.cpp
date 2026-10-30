@@ -3,19 +3,22 @@
 
 #include <iris/iris.hpp>
 
-TEST_CASE("Invalid set statements should throw a comprehensible error message") {
+#include "fixtures/EnvironmentFixture.hpp"
+
+TEST_CASE_METHOD(tests::EnvironmentFixture, "Invalid set statements should throw a comprehensible error message") {
     REQUIRE_THROWS_WITH(
-        iris::render(
+        render(
             R"({% set x = [ "a" ] )",
-            iris::Object {}
+            iris::Object {},
+            "file.txt"
         ),
-        "[iris.exception.parser_error] (at 1:20) expected statement, got '<eof>'"
+        "[iris.exception.parser_error] (at 1:20 in file.txt) expected statement, got '<eof>'"
     );
     REQUIRE_THROWS_WITH(
-        iris::render(
+        render(
             R"({% set x = [ "a" )",
             iris::Object {}
         ),
-        "[iris.exception.parser_error] (at 1:18) malformed expression (unterminated object or array)"
+        "[iris.exception.parser_error] (at 1:18 in <unspecified>) malformed expression (unterminated object or array)"
     );
 }

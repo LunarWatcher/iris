@@ -1,8 +1,10 @@
 #include "renderer.hpp"
 #include "iris/data/DataObject.hpp"
+#include <cassert>
 #include <numeric>
 #include <cmath>
 #include "iris/exceptions.hpp"
+#include "iris/utils.hpp"
 #include "throw.hpp"
 
 namespace iris {
@@ -11,8 +13,13 @@ void Renderer::visit(const ExtendsStatementNode &node) {
     const auto included_template_it = template_storage.find(node.file);
     if (included_template_it != template_storage.end()) {
         const Template *parent_template = &included_template_it->second;
-        render_to(*output_stream, *parent_template, *data_input,
-            &additional_data);
+        render_to(
+            *output_stream,
+            *parent_template,
+            appendSourceLocStack(&node),
+            *data_input,
+            &additional_data
+        );
         break_rendering = true;
     } else if (config.throw_at_missing_includes) {
         throw_renderer_error("extends '" + node.file + "' not found", node);
@@ -39,8 +46,13 @@ void Renderer::visit(const IncludeStatementNode &node) {
     auto sub_renderer = Renderer(config, template_storage, function_storage);
     const auto included_template_it = template_storage.find(node.file);
     if (included_template_it != template_storage.end()) {
-        sub_renderer.render_to(*output_stream, included_template_it->second,
-            *data_input, &additional_data);
+        sub_renderer.render_to(
+            *output_stream,
+            included_template_it->second,
+            appendSourceLocStack(&node),
+            *data_input,
+            &additional_data
+        );
     } else if (config.throw_at_missing_includes) {
         throw_renderer_error("include '" + node.file + "' not found", node);
     }
@@ -56,11 +68,13 @@ Renderer::Renderer(
 void Renderer::render_to(
     std::ostream &os,
     const Template &tmpl,
+    const std::stack<SourceLocation>& importStack,
     const DataObject &data,
     DataObject *loop_data
 ) {
     output_stream = &os;
     current_template = &tmpl;
+    this->importStack = importStack;
     data_input = &data;
     if (loop_data != nullptr) {
         additional_data = *loop_data;
@@ -134,13 +148,22 @@ Renderer::eval_expression_list(const ExpressionListNode &expression_list) {
     }
     return std::make_shared<DataObject>(*result);
 }
-void Renderer::throw_renderer_error(const std::string &message,
-    const AstNode &node) {
-    const SourceLocation loc =
-        get_source_location(current_template->content, node.pos);
-    IRIS_THROW(RenderError(message, loc));
+void Renderer::throw_renderer_error(
+    const std::string &message,
+    const AstNode &node
+) {
+    SourceLocation loc = get_source_location(
+        current_template->content,
+        node.pos
+    );
+    loc.filePathOrIdentifier = this->current_template->pathOrIdentifier;
+    loc.importStack = this->importStack;
+    
+    IRIS_THROW(RenderError(message, std::move(loc)));
 }
-void Renderer::make_result(const DataObject &&result) {
+void Renderer::make_result(
+    const DataObject &&result
+) {
     auto result_ptr = std::make_shared<DataObject>(result);
     data_tmp_stack.push_back(result_ptr);
     data_eval_stack.push(result_ptr.get());
@@ -646,4 +669,24 @@ void Renderer::visit(const IfStatementNode &node) {
         node.false_statement.accept(*this);
     }
 }
+
+std::stack<SourceLocation> Renderer::appendSourceLocStack(
+    const AstNode* node
+) {
+    auto stack = importStack;
+
+    auto loc = get_source_location(
+        current_template->content,
+        node->pos
+    );
+    loc.filePathOrIdentifier = current_template->pathOrIdentifier;
+    
+    stack.push(loc);
+    // I don't think this will ever trip, but `auto` always feels a bit murky. Will only be checked in debug mode
+    // anyway, so I don't really care
+    assert(stack.size() != importStack.size());
+
+    return stack;
+}
+
 }

@@ -1,9 +1,9 @@
-#include "fixtures/FileFixture.hpp"
+#include "fixtures/EnvironmentFixture.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 namespace {
 
-TEST_CASE_METHOD(tests::FileFixture, "Environment", "[files]") {
+TEST_CASE_METHOD(tests::EnvironmentFixture, "Environment", "[files]") {
     // C++26 is so full of cool fucking shit, including https://en.cppreference.com/cpp/preprocessor/embed, which would
     // make this test and similar future tests a lot easier to write
     REQUIRE(
@@ -15,7 +15,7 @@ trans rights are human rights
 )");
 }
 
-TEST_CASE_METHOD(tests::FileFixture, "Block/extend statements", "[files]") {
+TEST_CASE_METHOD(tests::EnvironmentFixture, "Block/extend statements", "[files]") {
     auto tmpl = parseFile("block.txt");
 
     std::string res = env.render(
@@ -26,7 +26,7 @@ TEST_CASE_METHOD(tests::FileFixture, "Block/extend statements", "[files]") {
     REQUIRE(res == "trans rights are human rights\n");
 }
 
-TEST_CASE_METHOD(tests::FileFixture, "Include statements", "[files]") {
+TEST_CASE_METHOD(tests::EnvironmentFixture, "Include statements", "[files]") {
     SECTION("Should render out indentically to content.txt when {%- is used") {
         auto tmpl = parseFile("include.txt");
         auto res = env.render(
@@ -45,7 +45,7 @@ Did you know that mrrp meow? :3
     }
 }
 
-TEST_CASE_METHOD(tests::FileFixture, "content.txt should render three lines", "[files]") {
+TEST_CASE_METHOD(tests::EnvironmentFixture, "content.txt should render three lines", "[files]") {
     auto tmpl = parseFile("content.txt");
     auto res = env.render(
         tmpl,
@@ -62,7 +62,7 @@ Did you know that mrrp meow? :3
 )"); // Loadbearing newline
 }
 
-TEST_CASE_METHOD(tests::FileFixture, "Include lookup functions hould be respected", "[files]") {
+TEST_CASE_METHOD(tests::EnvironmentFixture, "Include lookup functions hould be respected", "[files]") {
     env.set_include_callback([&](
         const std::filesystem::path& path,
         const std::string& tmplName

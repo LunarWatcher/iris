@@ -1,11 +1,16 @@
 #include "parser.hpp"
+#include "iris/template.hpp"
 #include <format>
 #include <memory>
 
 namespace iris {
 
 void Parser::throw_parser_error(const std::string &message) const {
-    IRIS_THROW(ParserError(message, lexer.current_position()));
+    auto loc = lexer.current_position();
+    loc.filePathOrIdentifier = this->currTemplate->pathOrIdentifier;
+    IRIS_THROW(
+        ParserError(message, std::move(loc))
+    );
 }
 void Parser::get_next_token() {
     if (have_peek_tok) {
@@ -41,8 +46,10 @@ void Parser::add_operator(Arguments &arguments, OperatorStack &operator_stack) {
     }
     arguments.emplace_back(function);
 }
-void Parser::add_to_template_storage(const std::filesystem::path &path,
-    std::string &template_name) {
+void Parser::add_to_template_storage(
+    const std::filesystem::path &path,
+    std::string &template_name
+) {
     if (template_storage.find(template_name) != template_storage.end()) {
         return;
     }
@@ -58,13 +65,14 @@ void Parser::add_to_template_storage(const std::filesystem::path &path,
 
         if (template_storage.find(template_name) == template_storage.end()) {
             // Load file
-            std::ifstream file;
-            file.open(template_name);
+            std::ifstream file(template_name);
             if (!file.fail()) {
                 const std::string text((std::istreambuf_iterator<char>(file)),
                     std::istreambuf_iterator<char>());
 
-                auto include_template = Template(text);
+                auto include_template = Template(
+                    text, template_name
+                );
                 template_storage.emplace(template_name, include_template);
                 parse_into_template(template_storage[template_name], template_name);
                 return;
@@ -803,6 +811,7 @@ bool Parser::parse_statement(Template &tmpl, Token::Kind closing,
     return true;
 }
 void Parser::parse_into(Template &tmpl, const std::filesystem::path &path) {
+    this->currTemplate = &tmpl;
     lexer.start(tmpl.content);
     current_block = &tmpl.root;
 
@@ -870,20 +879,34 @@ void Parser::parse_into(Template &tmpl, const std::filesystem::path &path) {
         }
     }
 }
-Parser::Parser(const ParserConfig &parser_config,
+Parser::Parser(
+    const ParserConfig &parser_config,
     const LexerConfig &lexer_config,
     TemplateStorage &template_storage,
-    const FunctionStorage &function_storage)
-    : config(parser_config), lexer(lexer_config),
-      template_storage(template_storage), function_storage(function_storage) {}
-Template Parser::parse(std::string_view input,
-    const std::filesystem::path &path) {
-    auto result = Template(std::string(input));
+    const FunctionStorage &function_storage
+)
+    : config(parser_config),
+      lexer(lexer_config),
+      template_storage(template_storage),
+      function_storage(function_storage)
+{}
+
+Template Parser::parse(
+    std::string_view input,
+    const std::filesystem::path &path
+) {
+    auto result = Template(
+        std::string(input),
+        path.string()
+    );
     parse_into(result, path);
     return result;
 }
-void Parser::parse_into_template(Template &tmpl,
-    const std::filesystem::path &filename) {
+
+void Parser::parse_into_template(
+    Template &tmpl,
+    const std::filesystem::path &filename
+) {
     auto sub_parser = Parser(
         config,
         lexer.get_config(),

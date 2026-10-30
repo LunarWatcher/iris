@@ -12,6 +12,10 @@ iris::render("Hello {{ name }}!", data); // Returns "Hello world!"
 
 Iris is a fork of [inja](https://github.com/pantor/inja/) with stronger guarantees against AI slop, as well as changes meant to benefit [violet](https://codeberg.org/LunarWatcher/violet) and whatever else in the general anti-AI ecosystem could need proper templates beyond what something more simple like mustache can provide.
 
+> [!note]
+>
+> This README is in the process of being split off into the `docs/` folder, which you can also find rendered with violet here: <https://lunarwatcher.codeberg.page/iris/>
+
 ## Tutorial
 
 This tutorial will give you an idea how to use iris. It will explain the most important concepts and give practical advices using examples and executable code. Beside this tutorial, you may check out the [documentation](https://lunarwatcher.codeberg.page/iris).
@@ -37,7 +41,7 @@ Environment env;
 std::string result = env.render("Hello {{ name }}!", data); // "Hello world!"
 
 // Or directly read a template file
-Template temp = env.parse_template("./templates/greeting.txt");
+Template temp = env.parse_file("./templates/greeting.txt");
 std::string result = env.render(temp, data); // "Hello world!"
 
 data["name"] = "Iris";

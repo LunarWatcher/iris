@@ -34,8 +34,11 @@ protected:
     std::filesystem::path output_path;
 
 public:
-    Environment(): Environment("") {}
-    explicit Environment(const std::filesystem::path& global_path): input_path(global_path), output_path(global_path) {}
+    Environment()
+        : Environment("") {}
+    explicit Environment(const std::filesystem::path& global_path)
+        : input_path(global_path),
+          output_path(global_path) {}
     Environment(const std::filesystem::path& input_path, const std::filesystem::path& output_path): input_path(input_path), output_path(output_path) {}
 
     /// Sets the opener and closer for template statements
@@ -65,13 +68,23 @@ public:
     /// Sets whether we'll automatically perform HTML escape
     void set_html_autoescape(bool will_escape);
 
-    Template parse(std::string_view input);
-
-    Template parse_template(const std::filesystem::path& filename);
+    /**
+     * \param input                 The template content
+     * \param filePathOrIdentifier  An absolute path to the source file, or an optional identifier to more easily
+     *                              identify the template in stacktraces
+     */
+    Template parse(
+        std::string_view input,
+        const std::string& filePathOrIdentifier = ""
+    );
 
     Template parse_file(const std::filesystem::path& filename);
 
-    std::string render(std::string_view input, const DataObject& data);
+    std::string render(
+        std::string_view input,
+        const DataObject& data,
+        const std::string& filePathOrIdentifier = ""
+    );
 
     std::string render(const Template& tmpl, const DataObject& data);
 
@@ -122,7 +135,11 @@ public:
 /*!
   @brief render with default settings to a string
 */
-extern std::string render(std::string_view input, const DataObject& data);
+extern std::string render(
+    std::string_view input,
+    const DataObject& data,
+    const std::string& filePathOrIdentifier = ""
+);
 
 /*!
   @brief render with default settings to the given output stream
