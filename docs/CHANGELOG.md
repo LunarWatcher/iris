@@ -11,7 +11,7 @@ This changelog is meant for people writing templates. For developers embedding i
 
 ## Unreleased
 
-## v0.3.0
+## v0.3.0 (2026-10-31)
 
 v0.3.0 is primarily a technical release.
 
@@ -23,6 +23,7 @@ v0.3.0 is primarily a technical release.
 ### Fixed
 
 * Prevent `capitalize` from throwing on an empty string
+* Fixed `{% set object.key = "value" %}` assignment
 
 ## v0.2.0
 

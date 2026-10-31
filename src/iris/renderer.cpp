@@ -222,6 +222,7 @@ void Renderer::visit(const ObjectNode& node) {
 void Renderer::visit(const LiteralNode &node) {
     data_eval_stack.push(&node.value);
 }
+
 void Renderer::visit(const DataNode &node) {
     try {
         if (additional_data.contains(node.ptr)) {

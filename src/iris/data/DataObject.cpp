@@ -1,6 +1,7 @@
 #include "DataObject.hpp"
 #include "iris/data/DataPointer.hpp"
 #include "iris/exceptions.hpp"
+#include <cassert>
 #include <iomanip>
 #include <stdexcept>
 #include <variant>
@@ -30,31 +31,29 @@ DataObject::DataObject(Boolean value) : data(value) {}
 
 DataObject::DataObject(std::initializer_list<DataObject> list) : DataObject(Array(list)) {}
 
-DataObject& DataObject::operator=(const DataObject& other) {
+void DataObject::copyFrom(const DataObject& source) {
     std::visit([&](auto& value) {
         using type = std::decay_t<decltype(value)>;
-        if constexpr (
-            std::is_same_v<type, Null>
-            || !std::is_pointer_v<type>
-        ) {
-            data = value;
-        } else if constexpr (std::is_same_v<type, StringPtr>) {
+        if constexpr (std::is_same_v<type, StringPtr>) {
             data = std::make_shared<String>(value->begin(), value->end());
         } else if constexpr (std::is_same_v<type, ArrayPtr>) {
-            // TODO: This implementation is incorrect
             auto vec = std::make_shared<Array>();
             *vec = *value;
             data = vec;
         } else if constexpr (std::is_same_v<type, ObjectPtr>) {
-            // TODO: This implementation is incorrect
             auto map = std::make_shared<Object>();
             *map = *value;
             data = map;
+
+            assert(map->size() == value->size());
         } else {
-            // Unhandled type
-            static_assert(false);
+            data = value;
         }
-    }, other.data);
+    }, source.data);
+}
+
+DataObject& DataObject::operator=(const DataObject& other) {
+    copyFrom(other);
     return *this;
 }
 DataObject& DataObject::operator=(DataObject&& other) noexcept {
@@ -63,7 +62,9 @@ DataObject& DataObject::operator=(DataObject&& other) noexcept {
     return *this;
 }
 
-DataObject::DataObject(const DataObject& src) : data(src.data) {}
+DataObject::DataObject(const DataObject& src) {
+    copyFrom(src);
+}
 DataObject::DataObject(DataObject&& src) noexcept : data(std::move(src.data)) {
     src.data = nullptr;
 }
@@ -313,7 +314,66 @@ DataObject& DataObject::operator[](size_t pos) const {
     }, data);
 }
 const DataObject& DataObject::at(const DataPointer& ptr, size_t offset) const {
+    return std::visit([&](const auto& value) -> const DataObject& {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (
+            std::is_same_v<T, ObjectPtr>
+        ) {
+            const auto& it = at(ptr.path.at(offset));
+
+            if (offset == ptr.path.size() - 1) {
+                return it;
+            }
+            return it.at(ptr, offset + 1);
+        } else if constexpr (
+            std::is_same_v<T, ArrayPtr>
+        ) {
+            auto sizeResult = parseSize(ptr.path.at(offset), ptr);
+            if (!sizeResult.has_value()) {
+                throw ContextlessRenderError(
+                    "access",
+                    sizeResult.error()
+                );
+            }
+
+            const auto& it = at(sizeResult.value());
+            if (offset == ptr.path.size() - 1) {
+                return it;
+            }
+            return it.at(ptr, offset + 1);
+        } else {
+            throw ContextlessRenderError(
+                "access",
+                std::format("called at[str] on a non-object with access key {}", ptr.join())
+            );
+        }
+    }, data);
+}
+
+const DataObject& DataObject::at(size_t pos) const {
+    return (*this)[pos];
+}
+const DataObject& DataObject::at(const std::string& key) const {
     return std::visit([&](const auto& value) -> DataObject& {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (
+            std::is_same_v<T, ObjectPtr>
+        ) {
+            if (!value->contains(key)) {
+                throw ContextlessRenderError(
+                    "access",
+                    std::format("Illegal access on key {} (current object is {})", key, serialize())
+                );
+            }
+            return value->at(key);
+        } else {
+            throw ContextlessRenderError("access", "called at[str] on a non-object");
+        }
+    }, data);
+}
+
+DataObject& DataObject::at(const DataPointer& ptr, size_t offset) {
+    return std::visit([&](auto& value) -> DataObject& {
         using T = std::decay_t<decltype(value)>;
         if constexpr (
             std::is_same_v<T, ObjectPtr>
@@ -323,7 +383,7 @@ const DataObject& DataObject::at(const DataPointer& ptr, size_t offset) const {
             if (offset == ptr.path.size() - 1) {
                 return it;
             }
-            return it.get(ptr, offset + 1);
+            return it.at(ptr, offset + 1);
         } else if constexpr (
             std::is_same_v<T, ArrayPtr>
         ) {
@@ -339,12 +399,34 @@ const DataObject& DataObject::at(const DataPointer& ptr, size_t offset) const {
             if (offset == ptr.path.size() - 1) {
                 return it;
             }
-            return it.get(ptr, offset + 1);
+            return it.at(ptr, offset + 1);
         } else {
             throw ContextlessRenderError(
                 "access",
                 std::format("called at[str] on a non-object with access key {}", ptr.join())
             );
+        }
+    }, data);
+}
+
+DataObject& DataObject::at(size_t pos) {
+    return (*this)[pos];
+}
+DataObject& DataObject::at(const std::string& key) {
+    return std::visit([&](auto& value) -> DataObject& {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (
+            std::is_same_v<T, ObjectPtr>
+        ) {
+            if (!value->contains(key)) {
+                throw ContextlessRenderError(
+                    "access",
+                    std::format("Illegal access on key {} (current object is {})", key, serialize())
+                );
+            }
+            return value->at(key);
+        } else {
+            throw ContextlessRenderError("access", "called at[str] on a non-object");
         }
     }, data);
 }
@@ -359,6 +441,9 @@ DataObject& DataObject::get(const DataPointer& ptr, size_t offset) {
             if (offset == ptr.path.size() - 1) {
                 auto& it = (*this)[ptr.path.at(offset)];
                 return it;
+            }
+            if (!contains(ptr.path.at(offset))) {
+                (*this)[ptr.path.at(offset)] = iris::Object();
             }
             auto& it = at(ptr.path.at(offset));
             return it.get(ptr, offset + 1);
@@ -405,10 +490,6 @@ DataObject& DataObject::operator[](const DataPointer& ptr) {
     }, data);
 }
 
-DataObject& DataObject::at(size_t pos) const {
-    return (*this)[pos];
-}
-
 DataObject& DataObject::front() const {
     return std::visit([&](const auto& value) -> DataObject& {
         using T = std::decay_t<decltype(value)>;
@@ -434,24 +515,6 @@ DataObject& DataObject::back() const {
     }, data);
 }
 
-DataObject& DataObject::at(const std::string& key) const {
-    return std::visit([&](const auto& value) -> DataObject& {
-        using T = std::decay_t<decltype(value)>;
-        if constexpr (
-            std::is_same_v<T, ObjectPtr>
-        ) {
-            if (!value->contains(key)) {
-                throw ContextlessRenderError(
-                    "access",
-                    std::format("Illegal access on key {}", key)
-                );
-            }
-            return value->at(key);
-        } else {
-            throw ContextlessRenderError("access", "called at[str] on a non-object");
-        }
-    }, data);
-}
 
 bool DataObject::contains(const std::string& key) const {
     return std::visit([&](const auto& value) -> bool {

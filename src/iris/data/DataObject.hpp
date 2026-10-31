@@ -57,6 +57,8 @@ private:
         const std::string& src,
         const DataPointer& ptr
     );
+
+    void copyFrom(const DataObject& source);
 public:
     DataObject();
 
@@ -174,15 +176,17 @@ public:
     bool empty() const;
 
     const DataObject& at(const DataPointer& ptr, size_t offset = 0) const;
+    const DataObject& at(size_t pos) const;
+    const DataObject& at(const std::string& key) const;
+
+    DataObject& at(const DataPointer& ptr, size_t offset = 0);
+    DataObject& at(size_t pos);
+    DataObject& at(const std::string& key);
 
     DataObject& get(const DataPointer& ptr, size_t offset = 0);
 
-    DataObject& at(size_t pos) const;
-
     DataObject& front() const;
     DataObject& back() const;
-
-    DataObject& at(const std::string& key) const;
 
     bool contains(const std::string& key) const;
     bool contains(const DataPointer& ptr, size_t offset = 0) const;

@@ -6,7 +6,7 @@
 
 namespace {
 
-TEST_CASE("DataObject init") {
+TEST_CASE("DataObject init", "[DataObject]") {
     SECTION("Should be constructible with an int") {
         iris::DataObject o(2);
         REQUIRE(o.is_int());
@@ -103,7 +103,7 @@ TEST_CASE("DataObject init") {
     }
 }
 
-TEST_CASE("DataObject equality") {
+TEST_CASE("DataObject equality", "[DataObject]") {
     SECTION("Primitives") {
         REQUIRE(iris::DataObject(3) == iris::DataObject(3));
         INFO((iris::DataObject(3) == iris::DataObject(3.0)));
@@ -129,7 +129,7 @@ TEST_CASE("DataObject equality") {
     }
 }
 
-TEST_CASE("DataObject comparison") {
+TEST_CASE("DataObject comparison", "[DataObject]") {
     SECTION("greater than/less than") {
         SECTION("Ints") {
             REQUIRE(iris::DataObject(3) > iris::DataObject(2));
@@ -194,7 +194,7 @@ TEST_CASE("DataObject comparison") {
     }
 }
 
-TEST_CASE("DataObject serialization") {
+TEST_CASE("DataObject serialization", "[DataObject]") {
     SECTION("should not add quotes around strings when doing direct string serialization") {
         REQUIRE(
             iris::DataObject("hewwo \" world").serialize()
@@ -244,7 +244,7 @@ TEST_CASE("DataObject serialization") {
     }
 }
 
-TEST_CASE("DataObject assignment") {
+TEST_CASE("DataObject assignment", "[DataObject]") {
     SECTION("From init") {
         iris::DataObject obj = iris::Object {};
         REQUIRE(obj.is_object());

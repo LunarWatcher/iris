@@ -48,7 +48,7 @@ true
 false
 mrrp meow
 )"; // Loadbearing newline
-    
+
     SECTION("render(str)") {
         std::string result = env.render(templateContent, iris::Object{}, &data);
         REQUIRE(result == expectedRender);
