@@ -13,6 +13,12 @@ This changelog is meant for developers that embed iris in their software. For th
 
 ## Unreleased
 
+## v0.3.2
+
+### Fixed
+
+* Removed `thread_local` from an internal variable
+
 ## v0.3.1
 
 ### Fixed
