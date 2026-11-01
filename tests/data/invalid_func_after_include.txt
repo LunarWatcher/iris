@@ -1,0 +1,4 @@
+{% include "base/basefile.txt" %}
+{% include "block.txt" %}
+
+{% set x = hello() %}

@@ -12,9 +12,20 @@ TEST_CASE_METHOD(tests::FunctionFixture, "Test exceptions on non-existing functi
 }
 
 TEST_CASE_METHOD(tests::FunctionFixture, "Test exceptions on non-existent function in a base extends call") {
-    SECTION("Without udata") {
+    SECTION("Without udata, in include") {
         REQUIRE_THROWS_MATCHES(
             renderFile("invalid_func_in_extends.txt"),
+            iris::ParserError,
+            Catch::Matchers::Predicate<iris::ParserError>(
+                [](const iris::ParserError& err) -> bool {
+                    return err.message == "unknown function hello";
+                }
+            )
+        );
+    }
+    SECTION("Without udata, after include") {
+        REQUIRE_THROWS_MATCHES(
+            renderFile("extend_invalid_func_after_include.txt"),
             iris::ParserError,
             Catch::Matchers::Predicate<iris::ParserError>(
                 [](const iris::ParserError& err) -> bool {

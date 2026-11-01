@@ -18,6 +18,7 @@ This changelog is meant for developers that embed iris in their software. For th
 ### Fixed
 
 * Removed `thread_local` from an internal variable
+  * I believe this caused a bug due to nested parsers competing for the same variable, though I have been unable to write a test that actually covers the bug in question. It happens with violet's setup, but a nearly identical setup is not able to reproduce the error.
 
 ## v0.3.1
 
