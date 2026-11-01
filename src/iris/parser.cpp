@@ -70,11 +70,11 @@ void Parser::add_to_template_storage(
                 const std::string text((std::istreambuf_iterator<char>(file)),
                     std::istreambuf_iterator<char>());
 
-                auto include_template = Template(
+                auto include_template = std::make_shared<Template>(
                     text, template_name
                 );
                 template_storage.emplace(template_name, include_template);
-                parse_into_template(template_storage[template_name], template_name);
+                parse_into_template(*template_storage[template_name], template_name);
                 return;
             } else if (!config.include_callback) {
                 IRIS_THROW(
@@ -86,7 +86,7 @@ void Parser::add_to_template_storage(
     // Try include callback
     if (config.include_callback) {
         auto include_template = config.include_callback(path, original_name);
-        template_storage.emplace(template_name, include_template);
+        template_storage.emplace(template_name, std::make_shared<Template>(include_template));
     }
 }
 std::string Parser::parse_filename() const {

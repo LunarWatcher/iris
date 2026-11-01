@@ -12,10 +12,9 @@ namespace iris {
 void Renderer::visit(const ExtendsStatementNode &node) {
     const auto included_template_it = template_storage.find(node.file);
     if (included_template_it != template_storage.end()) {
-        const Template *parent_template = &included_template_it->second;
         render_to(
             *output_stream,
-            *parent_template,
+            *included_template_it->second,
             appendSourceLocStack(&node),
             *data_input,
             &additional_data
@@ -53,7 +52,7 @@ void Renderer::visit(const IncludeStatementNode &node) {
     if (included_template_it != template_storage.end()) {
         sub_renderer.render_to(
             *output_stream,
-            included_template_it->second,
+            *included_template_it->second,
             appendSourceLocStack(&node),
             *data_input,
             &additional_data

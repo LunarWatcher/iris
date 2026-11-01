@@ -9,6 +9,8 @@ add_executable(tests
 
     src/parser/ParserMetadataTests.cpp
 
+    src/parser/errors/InvalidFunctionCallTests.cpp
+
     src/rendering/FileLoadingTests.cpp
     src/rendering/ForLoopTests.cpp
     src/rendering/FuncCallTests.cpp

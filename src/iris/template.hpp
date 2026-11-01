@@ -41,6 +41,9 @@ struct Template {
     }
 };
 
-using TemplateStorage = std::map<std::string, Template>;
+using TemplateStorage = std::unordered_map<
+    std::string,
+    std::shared_ptr<Template>
+>;
 
 } // namespace iris

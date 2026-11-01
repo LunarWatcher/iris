@@ -206,7 +206,9 @@ void Environment::add_void_callback(const std::string& name, int num_args, const
 
 
 void Environment::include_template(const std::string& name, const Template& tmpl) {
-    template_storage[name] = tmpl;
+    template_storage[name] = std::make_shared<Template>(
+        tmpl
+    );
 }
 
 void Environment::set_include_callback(const std::function<Template(const std::filesystem::path&, const std::string&)>& callback) {

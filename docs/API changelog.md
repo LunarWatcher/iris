@@ -13,6 +13,12 @@ This changelog is meant for developers that embed iris in their software. For th
 
 ## Unreleased
 
+## v0.3.1
+
+### Fixed
+
+* Fixed a bug where an internal container caused undefined behaviour in downstream applications if a template render triggered a container resizing.
+
 ## v0.3.0
 
 ### Added

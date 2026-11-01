@@ -1,0 +1,1 @@
+{% extends "base/invalid_func.txt" %}

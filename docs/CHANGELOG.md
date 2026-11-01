@@ -11,6 +11,10 @@ This changelog is meant for people writing templates. For developers embedding i
 
 ## Unreleased
 
+## v0.3.1
+
+This is a technical release with no feature changes.
+
 ## v0.3.0 (2026-10-31)
 
 v0.3.0 is primarily a technical release.
