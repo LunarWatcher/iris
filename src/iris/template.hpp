@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <string>
 
@@ -25,7 +25,7 @@ struct Template {
      * ever contain absolute paths.
      */
     std::string pathOrIdentifier;
-    std::map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
+    std::unordered_map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
 
     explicit Template() {}
     explicit Template(std::string content, std::string pathOrIdentifier)

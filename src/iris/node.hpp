@@ -99,6 +99,10 @@ public:
 
     virtual void accept(NodeVisitor& v) const override = 0;
 
+    /**
+     * Used to get a rough text representation of this object. May or may not be accurate depending on how convenient it
+     * is to print. The only minimum requirement is that it's roughly understandable
+     */
     virtual std::string serialize() = 0;
 };
 
