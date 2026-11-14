@@ -212,6 +212,12 @@ void Renderer::visit(const ObjectNode& node) {
 
         auto head = data_eval_stack.top();
         data_eval_stack.pop();
+        if (head == nullptr) {
+            throw_renderer_error(
+                std::format("Dereferenced invalid variable: {}", v->serialize()),
+                *v
+            );
+        }
         (*object)[k] = *head;
     }
 

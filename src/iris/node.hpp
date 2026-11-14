@@ -98,6 +98,8 @@ public:
     virtual ~ExpressionNode() = default;
 
     virtual void accept(NodeVisitor& v) const override = 0;
+
+    virtual std::string serialize() = 0;
 };
 
 class ObjectNode : public ExpressionNode {
@@ -107,6 +109,9 @@ public:
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
+    }
+    std::string serialize() override {
+        return "[object]";
     }
 };
 
@@ -118,6 +123,9 @@ public:
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
     }
+    std::string serialize() override {
+        return "[array]";
+    }
 };
 
 class LiteralNode : public ExpressionNode {
@@ -128,6 +136,9 @@ public:
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
+    }
+    std::string serialize() override {
+        return value.serialize();
     }
 };
 
@@ -143,6 +154,13 @@ public:
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
+    }
+
+    std::string serialize() override {
+        return std::format(
+            "Data pointer: {}",
+            name
+        );
     }
 };
 
@@ -263,6 +281,12 @@ public:
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
+    }
+    std::string serialize() override {
+        return std::format(
+            "[function call:{}]",
+            this->name
+        );
     }
 };
 

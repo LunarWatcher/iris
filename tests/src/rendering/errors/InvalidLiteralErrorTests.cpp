@@ -1,3 +1,4 @@
+#include "fixtures/FunctionFixture.hpp"
 #include "iris/exceptions.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
@@ -63,3 +64,83 @@ TEST_CASE_METHOD(tests::EnvironmentFixture, "Malformed key-value pairs", "[error
     );
 }
 
+TEST_CASE_METHOD(tests::FunctionFixture, "Invalid variable access should produce a correct error", "[errors]") {
+    REQUIRE_THROWS_WITH(
+        render(
+            R"(
+{% set obj = {
+    "key1": context.invalid,
+    "key": "value"
+} %}
+)",
+            iris::Object {
+                {"context", iris::Object {}}
+            }
+        ),
+        "[iris.exception.render_error] (at 3:13 in <unspecified>) Dereferenced invalid variable: Data pointer: context.invalid"
+    );
+    REQUIRE_THROWS_WITH(
+        render(
+            R"(
+{% set obj = {
+    "key1": nonexistent,
+    "key": "value"
+} %}
+)",
+            iris::Object {
+                {"context", iris::Object {}}
+            }
+        ),
+        "[iris.exception.render_error] (at 3:13 in <unspecified>) Dereferenced invalid variable: Data pointer: nonexistent"
+    );
+    REQUIRE_THROWS_WITH(
+        render(
+            R"(
+{% set obj = {
+    "key1": nonexistent.alsononexistent,
+    "key": "value"
+} %}
+)",
+            iris::Object {
+                {"context", iris::Object {}}
+            }
+        ),
+        "[iris.exception.render_error] (at 3:13 in <unspecified>) Dereferenced invalid variable: Data pointer: nonexistent.alsononexistent"
+    );
+    REQUIRE_THROWS_WITH(
+        render(
+            R"(
+{% set obj = {
+    "key1": invalid()),
+    "key": "value"
+} %}
+)",
+            iris::Object {}
+        ),
+        "[iris.exception.parser_error] (at 3:21 in <unspecified>) unknown function invalid"
+    );
+    REQUIRE_THROWS_WITH(
+        render(
+            R"(
+{% set obj = {
+    "key1": add(1, nonexistent),
+    "key": "value"
+} %}
+)",
+            iris::Object {}
+        ),
+        "[iris.exception.render_error] (at 3:20 in <unspecified>) variable 'nonexistent' not found"
+    );
+    REQUIRE_THROWS_WITH(
+        render(
+            R"(
+{% set obj = {
+    "key1": invalid(1, nonexistent),
+    "key": "value"
+} %}
+)",
+            iris::Object {}
+        ),
+        "[iris.exception.parser_error] (at 3:35 in <unspecified>) unknown function invalid"
+    );
+}

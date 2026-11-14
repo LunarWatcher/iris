@@ -11,6 +11,12 @@ This changelog is meant for people writing templates. For developers embedding i
 
 ## Unreleased
 
+## v0.4.0
+
+### Fixed
+
+* Invalid data object references in object literals now throw a standard renderer error rather than segfaulting ([#12](https://codeberg.org/LunarWatcher/iris/issues/12))
+
 ## v0.3.1-v0.3.2
 
 This is a technical release with no feature changes.
