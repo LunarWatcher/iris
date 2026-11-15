@@ -98,6 +98,25 @@ TEST_CASE("Set statements", "[set]") {
             REQUIRE(result == R"([3]<>3<>true)");
         }
     }
+
+    SECTION("Nested assignment") {
+        REQUIRE(
+            iris::render(
+                R"({% set x = {} %}{% set x.y = 69 %}{{ x }})",
+                iris::Object {}
+            )
+            ==
+            R"({"y":69})"
+        );
+        REQUIRE(
+            iris::render(
+                R"({% set x = {} %}{% set x.y.z = 69 %}{{ x }})",
+                iris::Object {}
+            )
+            ==
+            R"({"y":{"z":69}})"
+        );
+    }
 }
 
 }

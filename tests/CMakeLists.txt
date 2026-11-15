@@ -30,6 +30,7 @@ add_executable(tests
 
     src/rendering/udata/UdataTests.cpp
 
+    src/stdlib/AppendTests.cpp
     src/stdlib/ExistsTests.cpp
 )
 

@@ -61,7 +61,7 @@ void Parser::add_to_template_storage(
     const std::filesystem::path &path,
     std::string &template_name
 ) {
-    if (template_storage.find(template_name) != template_storage.end()) {
+    if (auto it = template_storage.find(template_name); it != template_storage.end()) {
         return;
     }
 
@@ -406,6 +406,22 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                     if (macroIt == tmpl.macroStorage.end()) {
                         throw_parser_error(
                             "unknown function " + func->name,
+                            idStart
+                        );
+                    }
+
+                    if (
+                        (size_t) func->number_args < macroIt->second->minParams
+                        || (size_t) func->number_args > macroIt->second->maxParams
+                    ) {
+                        throw_parser_error(
+                            std::format(
+                                "Macro {} expected at least {} arguments and at most {} arguments, but got {}",
+                                func->name,
+                                macroIt->second->minParams,
+                                macroIt->second->maxParams,
+                                func->number_args
+                            ),
                             idStart
                         );
                     }
@@ -755,6 +771,10 @@ bool Parser::parse_statement(Template &tmpl, Token::Kind closing,
 
         std::vector<MacroParam> params;
 
+        size_t minParams = 0;
+        size_t maxParams = 0;
+        bool hasDefaultArg = false;
+
         while (tok.kind != Token::Kind::RightParen) {
             if (tok.kind != Token::Kind::Id) {
                 throw_parser_error(
@@ -767,13 +787,9 @@ bool Parser::parse_statement(Template &tmpl, Token::Kind closing,
             std::shared_ptr<ExpressionNode> defaultValue = nullptr;
             get_next_token();
 
-            auto lastExprList = current_expression_list;
-            auto expression_list_node = std::make_shared<ExpressionListNode>(
-                tok.text.data() - tmpl.content.c_str()
-            );
-            current_expression_list = expression_list_node.get();
             if (tok.kind != Token::Kind::Comma && tok.kind != Token::Kind::RightParen) {
                 if (tok.text != "=") {
+                    [[unlikely]]
                     throw_parser_error(
                         std::format(
                             "Expected '=', got {}",
@@ -781,15 +797,37 @@ bool Parser::parse_statement(Template &tmpl, Token::Kind closing,
                         )
                     );
                 }
+                hasDefaultArg = true;
                 get_next_token();
-                if (!parse_expression(tmpl, Token::Kind::RightParen)) {
-                    throw_parser_error("Invalid expression");
+                // closing is used for the return type. We cannot use the return type
+                auto expr = parse_expression(tmpl);
+                if (tok.kind != Token::Kind::Comma && tok.kind != Token::Kind::RightParen) {
+                    [[unlikely]]
+                    throw_parser_error(
+                        std::format(
+                            "Expected ',' or ')', got '{}'", tok.describe()
+                        )
+                    );
+                } else if (expr == nullptr) {
+                    // TODO: I don't think this should ever be reached?
+                    [[unlikely]]
+                    throw_parser_error(
+                        "Invalid expression"
+                    );
                 }
-                auto expr = current_expression_list->root;
+                
                 defaultValue = expr;
-
+            } else if (hasDefaultArg) {
+                throw_parser_error(
+                    std::format(
+                        "Argument at position {} defaulted its argument. All subsequent arguments must also be defaulted",
+                        minParams + 1
+                    )
+                );
+            } else {
+                ++minParams;
             }
-            current_expression_list = lastExprList;
+            ++maxParams;
             if (tok.kind == Token::Kind::Comma) {
                 get_next_token();
             } else if (tok.kind != Token::Kind::RightParen) {
@@ -812,6 +850,8 @@ bool Parser::parse_statement(Template &tmpl, Token::Kind closing,
             macroName,
             std::move(params),
             this->current_block,
+            minParams,
+            maxParams,
             startPos
         );
         this->current_block = &macro->root;

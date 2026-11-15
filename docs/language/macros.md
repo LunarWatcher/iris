@@ -45,3 +45,8 @@ Macros may override or shadow other macros, but builtin functions and non-builti
 **DON'T:** `{% macro add_numbers() %}`
 
 Note that the prefix itself is not important, and the exact prefixes to use or to avoid vary by the implementing software.
+
+### Macros may not be included from other files
+
+This is a limitation that will disappear in time. For now, software implementing iris must provide alternative ways to define global macros, as they currently do not propagate in either direction from `{% include %}` or `{% extend %}`.
+

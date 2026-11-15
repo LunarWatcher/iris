@@ -244,3 +244,67 @@ TEST_CASE_METHOD(tests::EnvironmentFixture, "Macros should be possible to call f
 )"
     );
 }
+
+TEST_CASE_METHOD(tests::EnvironmentFixture, "Default args may not be declared before non-defaulted args") {
+    REQUIRE_THROWS_WITH(
+        render(
+            R"({%- macro myMacro(n, a = "colon three", c) -%}
+{%- endmacro -%})",
+            iris::Object {}
+        ),
+        "[iris.exception.parser_error] (at 1:42 in <unspecified>) Argument at position 2 defaulted its argument. All subsequent arguments must also be defaulted"
+    );
+    REQUIRE_THROWS_WITH(
+        render(
+            R"({%- macro myMacro(n, a = "colon three", c) -%}
+{%- endmacro -%})",
+            iris::Object {}
+        ),
+        "[iris.exception.parser_error] (at 1:42 in <unspecified>) Argument at position 2 defaulted its argument. All subsequent arguments must also be defaulted"
+    );
+}
+
+TEST_CASE_METHOD(tests::EnvironmentFixture, "Invalid macro calls should give sane errors") {
+    struct Data {
+        std::string args;
+        std::optional<int> errorActualArgs = std::nullopt;
+    };
+
+    std::vector<Data> cases = {
+        Data { "" , 0 },
+        Data { "1" , 1 },
+        Data { "1, 2" , 2 },
+        Data { "1, 2, 3" },
+        Data { "1, 2, 3, 4" },
+        Data { "1, 2, 3, 4, 5" },
+        Data { "1, 2, 3, 4, 5, 6" },
+        Data { "1, 2, 3, 4, 5, 6, 7", 7 },
+        Data { "1, 2, 3, 4, 5, 6, 7, 8", 8 },
+    };
+    
+    for (const auto& [args, errorActualArgs] : cases) {
+        auto text =
+            R"({%- macro myMacro(a, b, c, d = "d", e = 69, f = false) -%}success{%- endmacro -%})"
+            + std::format(
+                "\n{{{{ myMacro({}) }}}}",
+                args
+            );
+        INFO("Template body: " << text);
+        if (errorActualArgs) {
+            REQUIRE_THROWS_WITH(
+                render(text, iris::Object {}),
+                std::format(
+                    "[iris.exception.parser_error] (at 2:4 in <unspecified>) Macro myMacro expected at least 3 arguments and at most 6 arguments, but got {}",
+                    *errorActualArgs
+                )
+            );
+        } else {
+            REQUIRE(
+                render(text, iris::Object {})
+                ==
+                "success"
+            );
+        }
+        }
+
+}

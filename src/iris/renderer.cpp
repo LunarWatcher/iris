@@ -623,6 +623,19 @@ void Renderer::visit(const FunctionNode &node) {
     } break;
     case Op::None:
         break;
+    case FunctionStorage::Operation::Append: {
+        auto it = get_arguments<2>(node);
+
+        if (!it.at(0)->is_array()) {
+            throw_renderer_error(
+                "The first argument to append() must be an array",
+                node
+            );
+        }
+
+        const_cast<DataObject*>(it.at(0))->push_back(*it.at(1));
+        make_result(nullptr);
+    } break;
     }
 }
 void Renderer::visit(const ExpressionListNode &node) {

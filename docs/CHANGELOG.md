@@ -14,6 +14,7 @@ This changelog is meant for people writing templates. For developers embedding i
 ### Added
 
 * Added support for `{% macro %}` statements ([#13](https://codeberg.org/LunarWatcher/iris/issues/13))
+* Builtins: added `append(list, newItem)` to add an item to a list
 
 ### Fixed
 

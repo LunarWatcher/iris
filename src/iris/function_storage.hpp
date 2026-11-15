@@ -67,6 +67,7 @@ public:
         Upper,
         Super,
         Join,
+        Append,
         Callback,
         Macro,
         None,
@@ -113,6 +114,7 @@ private:
         {std::make_pair("super", 0), FunctionData {Operation::Super}},
         {std::make_pair("super", 1), FunctionData {Operation::Super}},
         {std::make_pair("join", 2), FunctionData {Operation::Join}},
+        {std::make_pair("append", 2), FunctionData {Operation::Append}},
     };
 
 public:

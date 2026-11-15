@@ -418,26 +418,33 @@ public:
 };
 
 struct MacroParam {
-    std::string name;
-    std::shared_ptr<ExpressionNode> defaultValue;
+    const std::string name;
+    const std::shared_ptr<ExpressionNode> defaultValue;
 };
 
 class MacroStatementNode : public StatementNode {
 public:
     const std::string name;
-    std::vector<MacroParam> params;
+    const std::vector<MacroParam> params;
     BlockNode root;
     BlockNode* const parent;
+
+    const size_t minParams = 0;
+    const size_t maxParams = 0;
 
     explicit MacroStatementNode(
         std::string_view name,
         std::vector<MacroParam>&& params,
         BlockNode* const parent,
+        size_t minParams,
+        size_t maxParams,
         size_t pos
     ) : StatementNode(pos),
         name(name),
         params(std::move(params)),
-        parent(parent)
+        parent(parent),
+        minParams(minParams),
+        maxParams(maxParams)
     {}
 
     void accept(NodeVisitor& v) const override {
