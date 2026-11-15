@@ -338,16 +338,6 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
             pushExpressionNode(arguments, objNode, objects);
         } break;
         case Token::Kind::Id: {
-            // if (!objectStack.empty()) {
-            //     pushExpressionNode(
-            //         arguments,
-            //         parse_expression(tmpl),
-            //         objectKeys,
-            //         objectStack,
-            //         objectsInObjectStack
-            //     );
-            //     continue;
-            // }
             auto idStart = lexer.getTokenStart();
             get_peek_token();
 
@@ -367,12 +357,12 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                     // Technically redundant, but this feels clearer
                     root = nullptr;
                 }
-                arguments.emplace_back(std::make_shared<LiteralNode>(
-                        std::move(root), body.data() - tmpl.content.c_str()));
+                arguments.emplace_back(
+                    std::make_shared<LiteralNode>(std::move(root), body.data() - tmpl.content.c_str())
+                );
 
                 // Operator
-            } else if (tok.text == "and" || tok.text == "or" || tok.text == "in" ||
-                tok.text == "not") {
+            } else if (tok.text == "and" || tok.text == "or" || tok.text == "in" || tok.text == "not") {
                 goto parse_operator;
 
                 // Functions
@@ -439,8 +429,10 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                 // Variables
             } else {
                 arguments.emplace_back(
-                    std::make_shared<DataNode>(static_cast<std::string>(tok.text),
-                        tok.text.data() - tmpl.content.c_str()));
+                    std::make_shared<DataNode>(
+                        static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()
+                    )
+                );
             }
 
             // Operators
@@ -518,16 +510,15 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                 throw_parser_error("unknown operator in parser.");
             }
             }
-            auto function_node = std::make_shared<FunctionNode>(
-                operation, tok.text.data() - tmpl.content.c_str());
-
+            auto function_node = std::make_shared<FunctionNode>(operation, tok.text.data() - tmpl.content.c_str());
 
             auto& operator_stack = operator_stacks.top();
-            while (!operator_stack.empty() &&
-                ((operator_stack.top()->precedence > function_node->precedence) ||
-                    (operator_stack.top()->precedence == function_node->precedence &&
-                        function_node->associativity ==
-                        FunctionNode::Associativity::Left))) {
+            while (
+                !operator_stack.empty()
+                && ((operator_stack.top()->precedence > function_node->precedence)
+                    || (operator_stack.top()->precedence == function_node->precedence
+                        && function_node->associativity == FunctionNode::Associativity::Left))
+            ) {
                 add_operator(arguments, operator_stack);
             }
 
@@ -579,11 +570,9 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
             // get function name
             get_next_token();
             if (tok.kind != Token::Kind::Id) {
-                throw_parser_error("expected function name, got '" + tok.describe() +
-                    "'");
+                throw_parser_error("expected function name, got '" + tok.describe() + "'");
             }
-            auto func = std::make_shared<FunctionNode>(
-                tok.text, tok.text.data() - tmpl.content.c_str());
+            auto func = std::make_shared<FunctionNode>(tok.text, tok.text.data() - tmpl.content.c_str());
             // add first parameter as last value from arguments
             func->number_args += 1;
             func->arguments.emplace_back(arguments.back());
@@ -601,14 +590,13 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                     func->number_args += 1;
                     func->arguments.emplace_back(expr);
                 } while (tok.kind == Token::Kind::Comma);
+
                 if (tok.kind != Token::Kind::RightParen) {
-                    throw_parser_error("expected right parenthesis, got '" +
-                        tok.describe() + "'");
+                    throw_parser_error("expected right parenthesis, got '" + tok.describe() + "'");
                 }
             }
             // search store for defined function with such name and number of args
-            auto function_data =
-                function_storage.find_function(func->name, func->number_args);
+            auto function_data = function_storage.find_function(func->name, func->number_args);
             if (function_data.operation == FunctionStorage::Operation::None) {
                 throw_parser_error("unknown function " + func->name);
             }
