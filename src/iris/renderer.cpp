@@ -182,9 +182,11 @@ void Renderer::visit(const BlockNode &node) {
         }
     }
 }
-void Renderer::visit(const TextNode &node) {
-    output_stream->write(current_template->content.c_str() + node.pos,
-        node.length);
+void Renderer::visit(const TextNode& node) {
+    output_stream->write(
+        node.data.c_str(),
+        node.data.size()
+    );
 }
 
 void Renderer::visit(const ArrayNode &node) {
@@ -400,12 +402,13 @@ void Renderer::visit(const FunctionNode &node) {
         const auto& name = get_arguments<1>(node)[0]->get<String>();
         make_result(
             data_input->contains(DataPointer(name))
+            || additional_data.contains(DataPointer(name))
         );
     } break;
     case Op::ExistsInObject: {
         const auto args = get_arguments<2>(node);
         auto &&name = args[1]->get<String>();
-        make_result(args[0]->contains(name));
+        make_result(args[0]->contains(DataPointer(name)));
     } break;
     case Op::First: {
         // ????
@@ -524,6 +527,18 @@ void Renderer::visit(const FunctionNode &node) {
     case Op::Macro: {
         auto args = get_argument_vector(node);
         std::unordered_map<std::string, iris::DataObject> before;
+
+        if (node.macroCallback == nullptr) {
+            [[unlikely]]
+            throw_renderer_error(
+                std::format(
+                    "Fatal error: macro {} is null!",
+                    node.name
+                ),
+                node
+            );
+        }
+        
         for (size_t i = 0; i < node.macroCallback->params.size(); ++i) {
             auto& arg = node.macroCallback->params.at(i);
             auto& obj = this->additional_data.get<Object>();

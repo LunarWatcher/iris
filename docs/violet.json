@@ -7,12 +7,12 @@
       "license": "Iris is licensed under the <a href=\"https://codeberg.org/LunarWatcher/iris/src/branch/master/LICENSE\">MIT license</a>"
     }
   },
-  "description": "Doc site for the iris templating library",
+  "description": "Doc site for the iris templating engine",
   "exclude": [
     "LICENSE",
     "scripts"
   ],
-  "name": "Iris templates",
+  "name": "Iris templating engine",
   "prefix": "/iris",
   "theme": "_default",
   "toc-start-level": 2

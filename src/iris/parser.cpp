@@ -391,7 +391,6 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                     func->number_args
                 );
                 if (function_data.operation == FunctionStorage::Operation::None) {
-                    // TODO: global macros
                     auto macroIt = tmpl.macroStorage.find(func->name);
                     if (macroIt == tmpl.macroStorage.end()) {
                         throw_parser_error(
@@ -399,7 +398,6 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                             idStart
                         );
                     }
-
                     if (
                         (size_t) func->number_args < macroIt->second->minParams
                         || (size_t) func->number_args > macroIt->second->maxParams
@@ -422,6 +420,8 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                     func->operation = function_data.operation;
                     if (function_data.operation == FunctionStorage::Operation::Callback) {
                         func->callback = function_data.callback;
+                    } else if (function_data.operation == FunctionStorage::Operation::Macro) {
+                        func->macroCallback = function_data.macroCallback.get();
                     }
                 }
                 arguments.emplace_back(func);
@@ -983,8 +983,14 @@ void Parser::parse_into(Template &tmpl, const std::filesystem::path &path) {
             current_block = nullptr;
             return;
         case Token::Kind::Text: {
-            current_block->nodes.emplace_back(std::make_shared<TextNode>(
-                    tok.text.data() - tmpl.content.c_str(), tok.text.size()));
+            current_block->nodes.emplace_back(
+                std::make_shared<TextNode>(
+                    std::string {
+                        tok.text
+                    },
+                    tok.text.data() - tmpl.content.c_str()
+                )
+            );
         } break;
         case Token::Kind::StatementOpen: {
             get_next_token();

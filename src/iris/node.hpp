@@ -85,9 +85,14 @@ public:
 
 class TextNode : public AstNode {
 public:
-    const size_t length;
+    // This means we duplicate the data, but it also means that the node trees can be entirely independent from the text
+    // they were given. The overhead should be fairly minimal anyway
+    std::string data;
 
-    explicit TextNode(size_t pos, size_t length): AstNode(pos), length(length) {}
+    explicit TextNode(
+        std::string data,
+        size_t pos
+    ): AstNode(pos), data(std::move(data)) {}
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
@@ -187,8 +192,8 @@ public:
     std::string name;
     int number_args; // Can also be negative -> -1 for unknown number
     std::vector<std::shared_ptr<ExpressionNode>> arguments;
-    CallbackFunction callback;
-    MacroStatementNode* macroCallback;
+    CallbackFunction callback = nullptr;
+    MacroStatementNode* macroCallback = nullptr;
 
     explicit FunctionNode(std::string_view name, size_t pos)
         : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(0) {}

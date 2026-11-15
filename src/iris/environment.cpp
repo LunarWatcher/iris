@@ -215,6 +215,15 @@ void Environment::set_include_callback(const std::function<Template(const std::f
     parser_config.include_callback = callback;
 }
 
+void Environment::accept_macros(const Template& tmpl) {
+    for (auto& [macroName, macroBlock] : tmpl.macroStorage) {
+        function_storage.add_global_macro(
+            macroName,
+            macroBlock
+        );
+    }
+}
+
 }
 
 std::string iris::render(

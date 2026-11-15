@@ -176,6 +176,10 @@ public:
       @brief Sets a function that is called when an included file is not found
     */
     void set_include_callback(const std::function<Template(const std::filesystem::path&, const std::string&)>& callback);
+
+    void accept_macros(const Template& tmpl);
+
+    const FunctionStorage& getFunctionStorage() const { return function_storage; }
 };
 
 /*!

@@ -1,5 +1,6 @@
 #include "catch2/matchers/catch_matchers.hpp"
 #include "fixtures/FunctionFixture.hpp"
+#include "iris/data/DataObject.hpp"
 #include "iris/environment.hpp"
 #include "fixtures/EnvironmentFixture.hpp"
 
@@ -305,6 +306,23 @@ TEST_CASE_METHOD(tests::EnvironmentFixture, "Invalid macro calls should give san
                 "success"
             );
         }
-        }
+    }
+}
 
+TEST_CASE_METHOD(tests::EnvironmentFixture, "The environment should allow accepting global macros") {
+    auto tmpl = parseFile(
+        "macros/macro_defs.iris"
+    );
+
+    auto beforeSize = env.getFunctionStorage().getRawData().size();
+    REQUIRE_NOTHROW(env.accept_macros(tmpl));
+    auto afterSize = env.getFunctionStorage().getRawData().size();
+
+    REQUIRE(afterSize == beforeSize + 1);
+
+    REQUIRE(
+        render("{{ meow() }}", iris::Object {})
+        ==
+        "meow meow meow meow meow meow\n"
+    );
 }

@@ -3,6 +3,7 @@
 #include "iris/data/DataObject.hpp"
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -13,6 +14,7 @@ namespace iris {
 using Arguments = std::vector<const DataObject*>;
 using CallbackFunction = std::function<DataObject(Arguments& args, void*)>;
 using VoidCallbackFunction = std::function<void(Arguments& args, void*)>;
+class MacroStatementNode;
 
 /*!
  * \brief Class for builtin functions and user-defined callbacks.
@@ -74,9 +76,15 @@ public:
     };
 
     struct FunctionData {
-        explicit FunctionData(const Operation& op, const CallbackFunction& cb = CallbackFunction {}): operation(op), callback(cb) {}
         const Operation operation;
         const CallbackFunction callback;
+        const std::shared_ptr<MacroStatementNode> macroCallback;
+
+        explicit FunctionData(const Operation& op, const CallbackFunction& cb = CallbackFunction{})
+            : operation(op), callback(cb), macroCallback(nullptr) {}
+
+        explicit FunctionData(const std::shared_ptr<MacroStatementNode>& macroCallback)
+            : operation(Operation::Macro), callback(nullptr), macroCallback(macroCallback) {}
     };
 
 private:
@@ -122,7 +130,13 @@ public:
 
     void add_callback(std::string_view name, int num_args, const CallbackFunction& callback);
 
+    void add_global_macro(std::string_view name, const std::shared_ptr<MacroStatementNode>& macroNode);
+
     FunctionData find_function(std::string_view name, int num_args) const;
+
+    const decltype(function_storage)& getRawData() const {
+        return function_storage;
+    }
 };
 
 } // namespace iris

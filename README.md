@@ -10,7 +10,7 @@ iris::DataObject obj = iris::Object {
 iris::render("Hello {{ name }}!", data); // Returns "Hello world!"
 ```
 
-Iris is a fork of [inja](https://github.com/pantor/inja/) with stronger guarantees against AI slop, as well as changes meant to benefit [violet](https://codeberg.org/LunarWatcher/violet) and whatever else in the general anti-AI ecosystem could need proper templates beyond what something more simple like mustache can provide.
+Iris is a fork of [inja](https://github.com/pantor/inja/) with stronger guarantees against AI slop, as well as changes meant to benefit [violet](https://codeberg.org/LunarWatcher/violet) and whatever else in the general anti-AI ecosystem could need proper templates beyond what something more simple like mustache can provide. The fork was made before several blatant AI slop PRs were merged.
 
 > [!note]
 >
