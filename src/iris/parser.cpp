@@ -1,5 +1,6 @@
 #include "parser.hpp"
 #include "iris/template.hpp"
+#include "iris/token.hpp"
 #include <format>
 #include <memory>
 
@@ -340,9 +341,11 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
             get_peek_token();
 
             // Data Literal
-            if (tok.text == static_cast<decltype(tok.text)>("true") ||
+            if (
+                tok.text == static_cast<decltype(tok.text)>("true") ||
                 tok.text == static_cast<decltype(tok.text)>("false") ||
-                tok.text == static_cast<decltype(tok.text)>("null")) {
+                tok.text == static_cast<decltype(tok.text)>("null")
+            ) {
                 literal_start = tok.text;
                 auto body = getDataText();
                 DataObject root;
@@ -375,19 +378,30 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                     func->number_args += 1;
                     func->arguments.emplace_back(expr);
                 } while (tok.kind == Token::Kind::Comma);
+
                 if (tok.kind != Token::Kind::RightParen) {
                     throw_parser_error("expected right parenthesis, got '" +
                         tok.describe() + "'");
                 }
 
-                auto function_data =
-                    function_storage.find_function(func->name, func->number_args);
+                auto function_data = function_storage.find_function(
+                    func->name,
+                    func->number_args
+                );
                 if (function_data.operation == FunctionStorage::Operation::None) {
-                    throw_parser_error("unknown function " + func->name);
-                }
-                func->operation = function_data.operation;
-                if (function_data.operation == FunctionStorage::Operation::Callback) {
-                    func->callback = function_data.callback;
+                    // TODO: global macros
+                    auto macroIt = tmpl.macroStorage.find(func->name);
+                    if (macroIt == tmpl.macroStorage.end()) {
+                        throw_parser_error("unknown function " + func->name);
+                    }
+
+                    func->operation = FunctionStorage::Operation::Macro;
+                    func->macroCallback = macroIt->second.get();
+                } else {
+                    func->operation = function_data.operation;
+                    if (function_data.operation == FunctionStorage::Operation::Callback) {
+                        func->callback = function_data.callback;
+                    }
                 }
                 arguments.emplace_back(func);
 
@@ -702,6 +716,100 @@ bool Parser::parse_statement(Template &tmpl, Token::Kind closing,
 
         current_block = block_statement_data->parent;
         block_statement_stack.pop();
+    } else if (tok.text == static_cast<decltype(tok.text)>("macro")) {
+        if (currentMacro != nullptr) {
+            throw_parser_error("macro declarations may not be nested");
+        }
+
+        get_next_token();
+
+        if (tok.kind != Token::Kind::Id) {
+            throw_parser_error("expected macro name, got '" + tok.describe() + "'");
+        }
+        auto startPos = tok.text.data() - tmpl.content.c_str();
+        std::string_view macroName {
+            tok.text
+        };
+
+        get_next_token();
+
+        if (tok.kind != Token::Kind::LeftParen) {
+            throw_parser_error("expected '(', got '" + tok.describe() + "'");
+        }
+        get_next_token();
+
+        std::vector<MacroParam> params;
+
+        while (tok.kind != Token::Kind::RightParen) {
+            if (tok.kind != Token::Kind::Id) {
+                throw_parser_error(
+                    std::format("expected macro parameter name, got '{}'", tok.describe())
+                );
+            }
+            std::string varName {
+                tok.text
+            };
+            std::shared_ptr<ExpressionNode> defaultValue = nullptr;
+            get_next_token();
+
+            auto lastExprList = current_expression_list;
+            auto expression_list_node = std::make_shared<ExpressionListNode>(
+                tok.text.data() - tmpl.content.c_str()
+            );
+            current_expression_list = expression_list_node.get();
+            if (tok.kind != Token::Kind::Comma && tok.kind != Token::Kind::RightParen) {
+                if (tok.text != "=") {
+                    throw_parser_error(
+                        std::format(
+                            "Expected '=', got {}",
+                            tok.text
+                        )
+                    );
+                }
+                get_next_token();
+                if (!parse_expression(tmpl, Token::Kind::RightParen)) {
+                    throw_parser_error("Invalid expression");
+                }
+                auto expr = current_expression_list->root;
+                defaultValue = expr;
+
+            }
+            current_expression_list = lastExprList;
+            if (tok.kind == Token::Kind::Comma) {
+                get_next_token();
+            } else if (tok.kind != Token::Kind::RightParen) {
+                throw_parser_error(
+                    std::format(
+                        "expected ')', got '{}'",
+                        tok.describe()
+                    )
+                );
+            }
+
+            params.push_back({
+                varName,
+                defaultValue
+            });
+        }
+        get_next_token(); // Skip past the RightParen
+
+        auto macro = std::make_shared<MacroStatementNode>(
+            macroName,
+            std::move(params),
+            this->current_block,
+            startPos
+        );
+        this->current_block = &macro->root;
+        this->currentMacro = macro.get();
+        tmpl.macroStorage[std::string(macroName)] = std::move(macro);
+    } else if (tok.text == static_cast<decltype(tok.text)>("endmacro")) {
+        if (currentMacro == nullptr) {
+            throw_parser_error("endmacro without matching macro");
+        }
+
+        get_next_token();
+        current_block = currentMacro->parent;
+        currentMacro = nullptr;
     } else if (tok.text == static_cast<decltype(tok.text)>("for")) {
         get_next_token();
 
@@ -824,6 +932,9 @@ void Parser::parse_into(Template &tmpl, const std::filesystem::path &path) {
             }
             if (!for_statement_stack.empty()) {
                 throw_parser_error("unmatched for");
+            }
+            if (currentMacro != nullptr) {
+                throw_parser_error("unmatched macro");
             }
         }
             current_block = nullptr;

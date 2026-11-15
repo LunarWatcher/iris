@@ -26,6 +26,7 @@ struct Template {
      */
     std::string pathOrIdentifier;
     std::unordered_map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
+    std::unordered_map<std::string, std::shared_ptr<MacroStatementNode>> macroStorage;
 
     explicit Template() {}
     explicit Template(std::string content, std::string pathOrIdentifier)

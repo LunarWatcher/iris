@@ -15,6 +15,7 @@ add_executable(tests
     src/rendering/ForLoopTests.cpp
     src/rendering/FuncCallTests.cpp
     src/rendering/LogicTests.cpp
+    src/rendering/MacroTests.cpp
     src/rendering/OperatorTests.cpp
     src/rendering/SetTests.cpp
     src/rendering/SubstitutionTests.cpp

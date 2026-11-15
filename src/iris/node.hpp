@@ -32,6 +32,7 @@ class IncludeStatementNode;
 class ExtendsStatementNode;
 class BlockStatementNode;
 class SetStatementNode;
+class MacroStatementNode;
 
 class NodeVisitor {
 public:
@@ -55,6 +56,7 @@ public:
     virtual void visit(const ExtendsStatementNode& node) = 0;
     virtual void visit(const BlockStatementNode& node) = 0;
     virtual void visit(const SetStatementNode& node) = 0;
+    virtual void visit(const MacroStatementNode& node) = 0;
 };
 
 /*!
@@ -186,6 +188,7 @@ public:
     int number_args; // Can also be negative -> -1 for unknown number
     std::vector<std::shared_ptr<ExpressionNode>> arguments;
     CallbackFunction callback;
+    MacroStatementNode* macroCallback;
 
     explicit FunctionNode(std::string_view name, size_t pos)
         : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(0) {}
@@ -286,6 +289,7 @@ public:
     void accept(NodeVisitor& v) const override {
         v.visit(*this);
     }
+
     std::string serialize() override {
         return std::format(
             "[function call:{}]",
@@ -407,6 +411,34 @@ public:
     ExpressionListNode expression;
 
     explicit SetStatementNode(const std::string& key, size_t pos): StatementNode(pos), key(key) {}
+
+    void accept(NodeVisitor& v) const override {
+        v.visit(*this);
+    }
+};
+
+struct MacroParam {
+    std::string name;
+    std::shared_ptr<ExpressionNode> defaultValue;
+};
+
+class MacroStatementNode : public StatementNode {
+public:
+    const std::string name;
+    std::vector<MacroParam> params;
+    BlockNode root;
+    BlockNode* const parent;
+
+    explicit MacroStatementNode(
+        std::string_view name,
+        std::vector<MacroParam>&& params,
+        BlockNode* const parent,
+        size_t pos
+    ) : StatementNode(pos),
+        name(name),
+        params(std::move(params)),
+        parent(parent)
+    {}
 
     void accept(NodeVisitor& v) const override {
         v.visit(*this);

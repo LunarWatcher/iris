@@ -122,8 +122,7 @@ void Renderer::print_data(const std::shared_ptr<DataObject> &value) {
         *output_stream << value->serialize();
     }
 }
-const std::shared_ptr<DataObject>
-Renderer::eval_expression_list(const ExpressionListNode &expression_list) {
+const std::shared_ptr<DataObject> Renderer::eval_expression_list(const ExpressionListNode &expression_list) {
     if (!expression_list.root) {
         throw_renderer_error("empty expression", expression_list);
     }
@@ -513,14 +512,67 @@ void Renderer::visit(const FunctionNode &node) {
     } break;
     case Op::Callback: {
         try {
-        auto args = get_argument_vector(node);
-        make_result(node.callback(args, udata));
+            auto args = get_argument_vector(node);
+            make_result(node.callback(args, udata));
         } catch (const ContextlessRenderError& err) {
             throw_renderer_error(
                 err.message,
                 node
             );
         }
+    } break;
+    case Op::Macro: {
+        auto args = get_argument_vector(node);
+        std::unordered_map<std::string, iris::DataObject> before;
+        for (size_t i = 0; i < node.macroCallback->params.size(); ++i) {
+            auto& arg = node.macroCallback->params.at(i);
+            auto& obj = this->additional_data.get<Object>();
+
+            if (args.size() <= i && arg.defaultValue == nullptr) {
+                throw_renderer_error(
+                    std::format(
+                        "Macro {} expected an argument to parameter {} (index {})",
+                        node.macroCallback->name,
+                        arg.name,
+                        i
+                    ),
+                    node
+                );
+            }
+            
+            if (auto it = obj.find(arg.name); it != obj.end()) {
+                before[arg.name] = it->second;
+            }
+
+            if (args.size() <= i) {
+                // need default arg
+                arg.defaultValue->accept(*this);
+
+                obj[arg.name] = *data_eval_stack.top();
+                data_eval_stack.pop();
+            } else {
+                if (args.at(i) == nullptr) {
+                    throw_renderer_error(
+                        std::format(
+                            "Argument to macro at index {} was not defined",
+                            i
+                        ),
+                        node
+                    );
+                }
+                obj[arg.name] = *args.at(i);
+            }
+        }
+        node.macroCallback->root.accept(*this);
+
+        for (auto& arg : node.macroCallback->params) {
+            auto it = before.find(arg.name);
+            if (it != before.end()) {
+                additional_data[arg.name] = it->second;
+            }
+        }
+
+        make_result(nullptr);
     } break;
     case Op::Super: {
         const auto args = get_argument_vector(node);
@@ -700,6 +752,10 @@ std::stack<SourceLocation> Renderer::appendSourceLocStack(
     assert(stack.size() != importStack.size());
 
     return stack;
+}
+
+void Renderer::visit(const MacroStatementNode& node) {
+    node.root.accept(*this);
 }
 
 }

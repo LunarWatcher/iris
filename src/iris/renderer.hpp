@@ -141,6 +141,7 @@ private:
         return result;
     }
 
+public:
     void visit(const BlockNode& node) override;
 
     void visit(const TextNode& node) override;
@@ -162,21 +163,22 @@ private:
 
     void visit(const ForStatementNode&) override;
 
-    void visit(const ForArrayStatementNode &node) override;
+    void visit(const ForArrayStatementNode& node) override;
 
-    void visit(const ForObjectStatementNode &node) override;
+    void visit(const ForObjectStatementNode& node) override;
 
-    void visit(const IfStatementNode &node) override;
+    void visit(const IfStatementNode& node) override;
 
-    void visit(const IncludeStatementNode &node) override;
+    void visit(const IncludeStatementNode& node) override;
 
-    void visit(const ExtendsStatementNode &node) override;
+    void visit(const ExtendsStatementNode& node) override;
 
-    void visit(const BlockStatementNode &node) override;
+    void visit(const BlockStatementNode& node) override;
 
-    void visit(const SetStatementNode &node) override;
+    void visit(const SetStatementNode& node) override;
 
-public:
+    void visit(const MacroStatementNode& node) override;
+
     explicit Renderer(
         const RenderConfig &config,
         const TemplateStorage &template_storage,

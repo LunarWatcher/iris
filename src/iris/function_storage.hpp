@@ -68,6 +68,7 @@ public:
         Super,
         Join,
         Callback,
+        Macro,
         None,
     };
 

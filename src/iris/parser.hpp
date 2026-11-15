@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <unordered_map>
 
 #include "config.hpp"
 #include "function_storage.hpp"
@@ -46,6 +47,7 @@ private:
     std::stack<IfStatementNode*> if_statement_stack;
     std::stack<ForStatementNode*> for_statement_stack;
     std::stack<BlockStatementNode*> block_statement_stack;
+    MacroStatementNode* currentMacro { nullptr };
 
     void throw_parser_error(const std::string &message) const;
 
