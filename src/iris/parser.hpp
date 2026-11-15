@@ -50,6 +50,10 @@ private:
     MacroStatementNode* currentMacro { nullptr };
 
     void throw_parser_error(const std::string &message) const;
+    void throw_parser_error(
+        const std::string &message,
+        size_t pos
+    ) const;
 
     void get_next_token();
 

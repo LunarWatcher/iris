@@ -62,11 +62,15 @@ public:
     explicit Lexer(const LexerConfig& config);
 
     SourceLocation current_position() const;
+    SourceLocation position(size_t tokenPosition) const;
 
     void start(std::string_view input);
 
     Token scan();
 
+    size_t getTokenStart() const {
+        return tok_start;
+    }
     const LexerConfig& get_config() const;
 };
 

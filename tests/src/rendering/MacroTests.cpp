@@ -127,7 +127,7 @@ Hello {{ name }}, {{ orders -}}
 {%- endmacro -%})",
             iris::Object {}
         ),
-        "[iris.exception.parser_error] (at 1:17 in <unspecified>) unknown function myMacro"
+        "[iris.exception.parser_error] (at 1:4 in <unspecified>) unknown function myMacro"
     );
 }
 

@@ -241,6 +241,10 @@ SourceLocation Lexer::current_position() const {
     return get_source_location(m_in, tok_start);
 }
 
+SourceLocation Lexer::position(size_t tokenPosition) const {
+    return get_source_location(m_in, tokenPosition);
+}
+
 void Lexer::start(std::string_view input) {
     m_in = input;
     tok_start = 0;

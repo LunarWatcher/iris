@@ -7,7 +7,7 @@
 TEST_CASE_METHOD(tests::FunctionFixture, "Test exceptions on non-existing functions") {
     REQUIRE_THROWS_WITH(
         render("{{ hello() }}"),
-        R"([iris.exception.parser_error] (at 1:10 in <unspecified>) unknown function hello)"
+        R"([iris.exception.parser_error] (at 1:4 in <unspecified>) unknown function hello)"
     );
 }
 
@@ -54,10 +54,10 @@ TEST_CASE_METHOD(tests::FunctionFixture, "Test exceptions on non-existent functi
 TEST_CASE_METHOD(tests::FunctionFixture, "Test exceptions on incompatible function calls") {
     REQUIRE_THROWS_WITH(
         render("{{ add(1) }}"),
-        R"([iris.exception.parser_error] (at 1:9 in <unspecified>) unknown function add)"
+        R"([iris.exception.parser_error] (at 1:4 in <unspecified>) unknown function add)"
     );
     REQUIRE_THROWS_WITH(
         render("{{ add(1, 1, 1) }}"),
-        R"([iris.exception.parser_error] (at 1:15 in <unspecified>) unknown function add)"
+        R"([iris.exception.parser_error] (at 1:4 in <unspecified>) unknown function add)"
     );
 }

@@ -13,11 +13,13 @@ This changelog is meant for people writing templates. For developers embedding i
 
 ### Added
 
-* Added support for `{% macro %}` statements
+* Added support for `{% macro %}` statements ([#13](https://codeberg.org/LunarWatcher/iris/issues/13))
 
 ### Fixed
 
 * Invalid data object references in object literals now throw a standard renderer error rather than segfaulting ([#12](https://codeberg.org/LunarWatcher/iris/issues/12))
+* Made errors for invalid function calls point at the start of the function name rather than after the entier function declaration
+
 
 ## v0.3.1-v0.3.2
 

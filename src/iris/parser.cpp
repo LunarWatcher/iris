@@ -7,12 +7,22 @@
 namespace iris {
 
 void Parser::throw_parser_error(const std::string &message) const {
-    auto loc = lexer.current_position();
+    throw_parser_error(message, lexer.getTokenStart());
+}
+
+void Parser::throw_parser_error(
+    const std::string &message,
+    size_t tokenPos
+) const {
+    auto loc = lexer.position(
+        tokenPos
+    );
     loc.filePathOrIdentifier = this->currTemplate->pathOrIdentifier;
     IRIS_THROW(
         ParserError(message, std::move(loc))
     );
 }
+
 void Parser::get_next_token() {
     if (have_peek_tok) {
         tok = peek_tok;
@@ -338,6 +348,7 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
             //     );
             //     continue;
             // }
+            auto idStart = lexer.getTokenStart();
             get_peek_token();
 
             // Data Literal
@@ -368,6 +379,7 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
             } else if (peek_tok.kind == Token::Kind::LeftParen) {
                 auto func = std::make_shared<FunctionNode>(
                     tok.text, tok.text.data() - tmpl.content.c_str());
+                   
                 get_next_token();
                 do {
                     get_next_token();
@@ -392,7 +404,10 @@ std::shared_ptr<ExpressionNode> Parser::parse_expression(Template &tmpl) {
                     // TODO: global macros
                     auto macroIt = tmpl.macroStorage.find(func->name);
                     if (macroIt == tmpl.macroStorage.end()) {
-                        throw_parser_error("unknown function " + func->name);
+                        throw_parser_error(
+                            "unknown function " + func->name,
+                            idStart
+                        );
                     }
 
                     func->operation = FunctionStorage::Operation::Macro;

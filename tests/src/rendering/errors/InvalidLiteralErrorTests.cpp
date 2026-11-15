@@ -117,7 +117,7 @@ TEST_CASE_METHOD(tests::FunctionFixture, "Invalid variable access should produce
 )",
             iris::Object {}
         ),
-        "[iris.exception.parser_error] (at 3:21 in <unspecified>) unknown function invalid"
+        "[iris.exception.parser_error] (at 3:13 in <unspecified>) unknown function invalid"
     );
     REQUIRE_THROWS_WITH(
         render(
@@ -141,6 +141,6 @@ TEST_CASE_METHOD(tests::FunctionFixture, "Invalid variable access should produce
 )",
             iris::Object {}
         ),
-        "[iris.exception.parser_error] (at 3:35 in <unspecified>) unknown function invalid"
+        "[iris.exception.parser_error] (at 3:13 in <unspecified>) unknown function invalid"
     );
 }
