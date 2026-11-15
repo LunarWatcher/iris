@@ -11,7 +11,9 @@ This changelog is meant for people writing templates. For developers embedding i
 
 ## Unreleased
 
-## v0.4.0
+### Added
+
+* Added support for `{% macro %}` statements
 
 ### Fixed
 

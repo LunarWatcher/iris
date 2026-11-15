@@ -1,4 +1,5 @@
 #include "catch2/matchers/catch_matchers.hpp"
+#include "fixtures/FunctionFixture.hpp"
 #include "iris/environment.hpp"
 #include "fixtures/EnvironmentFixture.hpp"
 
@@ -6,7 +7,7 @@
 
 TEST_CASE_METHOD(tests::EnvironmentFixture, "Unused macros should not be rendered") {
     REQUIRE(
-        iris::render(
+        render(
             R"({%- macro myMacro() -%}
 hello world
 {%- endmacro -%}
@@ -17,7 +18,7 @@ potato)",
         "potato"
     );
     REQUIRE(
-        iris::render(
+        render(
             R"({%- macro myMacro(name) -%}
 hello {{ name }}
 {%- endmacro -%}
@@ -31,7 +32,7 @@ potato)",
 
 TEST_CASE_METHOD(tests::EnvironmentFixture, "Macro statements without arguments") {
     REQUIRE(
-        iris::render(
+        render(
             R"({%- macro myMacro() -%}
 hello world
 {%- endmacro -%}
@@ -45,7 +46,7 @@ hello world
 
 TEST_CASE_METHOD(tests::EnvironmentFixture, "Macro statements with arguments") {
     REQUIRE(
-        iris::render(
+        render(
             R"({%- macro myMacro(name) -%}
 hello {{ name -}}
 {%- endmacro -%}
@@ -56,7 +57,7 @@ hello {{ name -}}
         "hello false"
     );
     REQUIRE(
-        iris::render(
+        render(
             R"({%- macro myMacro(name) -%}
 hello {{ name -}}
 {%- endmacro -%}
@@ -67,7 +68,7 @@ hello {{ name -}}
         "hello Zoe"
     );
     REQUIRE(
-        iris::render(
+        render(
             R"({%- macro myMacro(name) -%}
 hello {{ name -}}
 {%- endmacro -%}
@@ -78,7 +79,7 @@ hello {{ name -}}
         R"(hello {"trans rights":"human rights"})"
     );
     REQUIRE(
-        iris::render(
+        render(
             R"({%- macro myMacro(name) -%}
 hello {{ name -}}
 {%- endmacro -%}
@@ -94,7 +95,7 @@ hello {{ name -}}
 
 TEST_CASE_METHOD(tests::EnvironmentFixture, "Macro statements with default arguments") {
     REQUIRE(
-        iris::render(
+        render(
             R"({%- macro myMacro(name, orders = "meow") -%}
 Hello {{ name }}, {{ orders -}}
 {%- endmacro -%}
@@ -105,7 +106,7 @@ Hello {{ name }}, {{ orders -}}
         "Hello cat, meow"
     );
     REQUIRE(
-        iris::render(
+        render(
             R"({%- macro myMacro(name, orders = "meow") -%}
 Hello {{ name }}, {{ orders -}}
 {%- endmacro -%}
@@ -119,7 +120,7 @@ Hello {{ name }}, {{ orders -}}
 
 TEST_CASE_METHOD(tests::EnvironmentFixture, "Macro declarations are order  dependent") {
     REQUIRE_THROWS_WITH(
-        iris::render(
+        render(
             R"({{ myMacro("cat") }}
 {%- macro myMacro(name, orders = "meow") -%}
 Hello {{ name }}, {{ orders -}}
@@ -128,4 +129,71 @@ Hello {{ name }}, {{ orders -}}
         ),
         "[iris.exception.parser_error] (at 1:17 in <unspecified>) unknown function myMacro"
     );
+}
+
+TEST_CASE_METHOD(tests::FunctionFixture, "Types should be preserved") {
+    struct Data {
+        iris::Int a;
+        std::optional<iris::Int> b;
+        iris::Int result;
+    };
+
+    std::vector<Data> cases = {
+        // Implicit 3
+        { 0, std::nullopt, 3 },
+        { 3, std::nullopt, 6 },
+        { -3, std::nullopt, 0 },
+
+        // Explicit 3
+        { 0, 3, 3 },
+        { 3, 3, 6 },
+        { -3, 3, 0 },
+
+        // explicit non-default-equivalent
+        { 0, 6, 6 },
+        { 3, 6, 9 },
+        { -3, 6, 3 },
+    };
+    for (auto [a, b, expected] : cases) {
+        iris::Object obj {
+            {"a", a}
+        };
+        if (b) {
+            obj["b"] = *b;
+        }
+        INFO(
+            "a=" << a
+            << ", b=" << (b ? std::to_string(*b) : "<undefined>")
+            << ", expected=" << expected
+        );
+        REQUIRE(
+            render(
+                R"({%- macro customAdd(a, b = 3) -%}
+{{ isNumber(a) }}
+{{ isNumber(b) }}
+{{ add(a, b) }}
+{{ a + b }}
+{%- endmacro -%}
+{%- if exists("b") -%}
+b: true
+{{- customAdd(a, b) -}}
+{%- else -%}
+b: false
+{{- customAdd(a) -}}
+{%- endif -%})",
+                obj
+            )
+            ==
+            std::format(
+                R"(b: {0}
+true
+true
+{1}
+{1}
+)",
+                b.has_value(),
+                expected
+            )
+        );
+    }
 }
