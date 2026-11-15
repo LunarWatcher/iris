@@ -118,7 +118,7 @@ Hello {{ name }}, {{ orders -}}
     );
 }
 
-TEST_CASE_METHOD(tests::EnvironmentFixture, "Macro declarations are order  dependent") {
+TEST_CASE_METHOD(tests::EnvironmentFixture, "Macro declarations are order dependent") {
     REQUIRE_THROWS_WITH(
         render(
             R"({{ myMacro("cat") }}
@@ -128,6 +128,23 @@ Hello {{ name }}, {{ orders -}}
             iris::Object {}
         ),
         "[iris.exception.parser_error] (at 1:4 in <unspecified>) unknown function myMacro"
+    );
+}
+
+TEST_CASE_METHOD(tests::EnvironmentFixture, "Macro declarations may not be nested") {
+    REQUIRE_THROWS_WITH(
+        render(
+            R"(
+{%- macro myMacro(name, orders = "meow") -%}
+    {%- macro myMacro(name, orders = "meow") -%}
+    Hello {{ name }}, {{ orders -}}
+    {%- endmacro -%}
+{%- endmacro -%})",
+            iris::Object {},
+            // Might as well sprinkle in an explicit identifier every once in a while just for good measure
+            "my template.iris"
+        ),
+        "[iris.exception.parser_error] (at 3:9 in my template.iris) macro declarations may not be nested"
     );
 }
 
@@ -196,4 +213,34 @@ true
             )
         );
     }
+}
+
+TEST_CASE_METHOD(tests::EnvironmentFixture, "Macros should be possible to call from within a macro body") {
+    REQUIRE(
+        render(
+            R"(
+{%- macro myMacro(n) -%}
+    {{ n }}
+    {%- if n > 0 -%}
+        {{- myMacro(n - 1) -}}
+    {%- endif -%}
+{%- endmacro -%}
+{{- myMacro(10) -}})",
+            iris::Object {}
+        )
+        ==
+        R"(
+10
+9
+8
+7
+6
+5
+4
+3
+2
+1
+0
+)"
+    );
 }
