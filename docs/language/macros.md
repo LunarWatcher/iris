@@ -48,5 +48,5 @@ Note that the prefix itself is not important, and the exact prefixes to use or t
 
 ### Macros may not be included from other files
 
-This is a limitation that will disappear in time. For now, software implementing iris must provide alternative ways to define global macros, as they currently do not propagate in either direction from `{% include %}` or `{% extend %}`.
+This is a limitation that will disappear in time. For now, software implementing iris must provide alternative ways to define global macros, as they currently do not propagate in either direction from `{% include %}` or `{% extends %}`.
 
